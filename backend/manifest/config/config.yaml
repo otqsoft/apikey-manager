@@ -1,0 +1,54 @@
+# =============================================================================
+# 多平台大模型 API-KEY 集中管理工具 —— 后端配置（GoFrame v2）
+# 启动命令：./bin/api -c manifest/config/config.yaml
+# =============================================================================
+
+# HTTP 服务监听地址，默认 8090
+server:
+  address: ":8090"
+  serverRoot: ""
+  # 访问日志/错误日志输出到控制台，便于排查
+  logger:
+    level: "info"
+
+# -----------------------------------------------------------------------------
+# 数据库配置
+# 默认使用纯 Go 驱动 SQLite（无需 CGO、无需外部数据库服务）。
+# 切换 MySQL：把 type 改为 mysql，取消下面 mysql 节注释并注释 sqlite 节；
+# 同时在 main.go 中放开 _ "github.com/gogf/gf/contrib/drivers/mysql/v2" 空白导入。
+# -----------------------------------------------------------------------------
+database:
+  default:
+    # SQLite（纯 Go 驱动 glebarez，CGO_ENABLED=0 可直接构建运行）
+    # 注意：GoFrame gdb 配置键为 type（对应驱动注册名 sqlite）
+    type: "sqlite"
+    name: "./data/apikey.db"
+
+    # ---- MySQL 示例（切换时把上面 sqlite 两段注释掉，启用下面内容）----
+    # type:    "mysql"
+    # host:    "127.0.0.1"
+    # port:    "3306"
+    # name:    "apikey_manager"
+    # user:    "root"
+    # pass:    "root"
+    # charset: "utf8mb4"
+    # debug:   true
+
+# JWT 鉴权配置
+jwt:
+  # 签名密钥，生产环境务必修改为足够长的随机字符串
+  secret: "apikey-manager-jwt-secret-2026-please-change-in-prod"
+  # token 有效期（秒），默认 7 天
+  expire: 604800
+
+# 内置初始管理员账号（仅当 users 表为空时自动写入；非空不覆盖）
+default:
+  username: "admin"
+  password: "admin123"
+  displayName: "系统管理员"
+
+# 应用行为开关
+app:
+  # 是否开放公开注册接口 POST /api/auth/register；false 时注册返回「注册已关闭」
+  # 配置缺失时后端按 true 兜底；内网/生产环境建议关闭，仅由管理员后台建号
+  allow_register: true

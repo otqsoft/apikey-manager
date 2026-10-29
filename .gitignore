@@ -1,0 +1,12 @@
+# 依赖与构建产物
+node_modules/
+web/dist/
+web/release/
+
+# 后端编译产物与本地数据库
+backend/bin/
+backend/data/
+
+# 日志与系统文件
+*.log
+.DS_Store
