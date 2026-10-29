@@ -89,8 +89,9 @@ function dispatchLine(raw: string, handlers: StreamHandlers) {
  * POST /api/chat/completions（恒 stream=true）
  * 逐行解析 `data: {...}`；兼容后端非 SSE 降级补发的 delta/usage/done 序列；
  * 读取结束后兜底解析无换行结尾的残行，保证状态收尾、不卡死 loading。
+ * signal 用于「停止生成」：中断读取，已收到的增量内容保留。
  */
-export async function streamCompletions(payload: CompletionPayload, handlers: StreamHandlers) {
+export async function streamCompletions(payload: CompletionPayload, handlers: StreamHandlers, signal?: AbortSignal) {
   const token = localStorage.getItem('ak_token') || ''
   const resp = await fetch('/api/chat/completions', {
     method: 'POST',
@@ -98,7 +99,8 @@ export async function streamCompletions(payload: CompletionPayload, handlers: St
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal
   })
 
   if (!resp.ok || !resp.body) {
@@ -123,19 +125,24 @@ export async function streamCompletions(payload: CompletionPayload, handlers: St
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    // 兼容 \r\n 行尾（契约 8.2：统一替换为 \n 再切行）
-    buffer = buffer.replace(/\r\n/g, '\n')
-    let idx = buffer.indexOf('\n')
-    while (idx >= 0) {
-      dispatchLine(buffer.slice(0, idx), handlers)
-      buffer = buffer.slice(idx + 1)
-      idx = buffer.indexOf('\n')
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      // 兼容 \r\n 行尾（契约 8.2：统一替换为 \n 再切行）
+      buffer = buffer.replace(/\r\n/g, '\n')
+      let idx = buffer.indexOf('\n')
+      while (idx >= 0) {
+        dispatchLine(buffer.slice(0, idx), handlers)
+        buffer = buffer.slice(idx + 1)
+        idx = buffer.indexOf('\n')
+      }
     }
+    // 兜底：最后一行可能没有换行符
+    dispatchLine(buffer, handlers)
+  } catch (e) {
+    // 主动停止（AbortError）不算错误：保留已收到的增量，正常收尾
+    if ((e as Error)?.name !== 'AbortError') throw e
   }
-  // 兜底：最后一行可能没有换行符
-  dispatchLine(buffer, handlers)
 }

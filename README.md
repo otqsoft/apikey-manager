@@ -19,7 +19,7 @@
 
 一个面向个人 / 小团队的桌面端「模型 API-KEY 统一管理与对话测试台」：集中维护多个模型供应商（OpenAI 兼容 / Anthropic 两种协议）、模型定价、API-KEY 额度与分配关系，内置对话测试页并自动统计 Token 消耗与费用。后端持有密钥，前端不接触第三方 Key；普通用户只能使用被分配给自己的 Key。
 
-- 后端：Go + GoFrame v2 + gdb（默认 SQLite 纯 Go 驱动，可切换 MySQL）
+- 后端：Go + GoFrame v2 + gdb（默认 MySQL，可切回 SQLite 纯 Go 驱动）
 - 前端：Vue3 + Vite + TypeScript + Element Plus + Pinia + Vue Router + axios
 - 桌面壳：Electron（electron-builder 打包 Windows nsis / macOS dmg / Linux AppImage）
 
@@ -73,9 +73,9 @@
 
 ## 环境要求
 
-- Go 1.21+（开发机已在 Go 1.23 验证；SQLite 为纯 Go 驱动，**无需 CGO / gcc**）
+- Go 1.21+（开发机已在 Go 1.23 验证；切回 SQLite 时为纯 Go 驱动，无需 CGO / gcc）
 - Node.js 18+（推荐 20/22）、npm
-- 可选：MySQL 8.0+（默认使用内置 SQLite，无需安装数据库服务）
+- MySQL 8.0+（当前默认数据库；本机 5.7 已验证。需先建空库、字符集 utf8mb4）
 
 ## 快速开始
 
@@ -95,9 +95,9 @@ go run .
 | 配置项 | 说明 |
 |---|---|
 | server.address | 服务监听地址，默认 `:8090` |
-| database.default.type | 驱动名：`sqlite`（默认，纯 Go 无 CGO）或 `mysql`（GoFrame gdb 配置键为 type） |
-| database.default.name | SQLite 为数据库文件路径（默认 `./data/apikey.db`，启动时自动创建目录与表）；MySQL 为库名 |
-| mysql 注释节 | host/port/name/user/pass/charset；切 MySQL 时取消注释、注释 sqlite 节，并在 `main.go` 放开 mysql 驱动空白导入 |
+| database.default.type | 驱动名：`mysql`（当前默认）或 `sqlite`（纯 Go 无 CGO） |
+| database.default.host/port/name/user/pass/charset | MySQL 连接参数（默认 `127.0.0.1:3306`，库名 `apikey_manager`，utf8mb4；需先手动建空库） |
+| sqlite 配置注释节 | 切回 SQLite 时取消注释、注释 mysql 节，并在 `main.go` 放开 sqlite 驱动空白导入 |
 | jwt.secret / jwt.expire | JWT 签名密钥与有效期（秒，默认 7 天；生产请修改 secret） |
 | default.username / password / displayName | 首次初始化内置管理员（admin / admin123），仅 users 表为空时写入，不覆盖已有账号 |
 
@@ -165,7 +165,7 @@ npm run build:linux      # Linux AppImage
 
 - 首次启动自动执行建表：providers / models / api_keys / users / key_user / chat_sessions / chat_messages（字段、索引见 `docs/api-contract.md` 第 1 节）。
 - 种子数据仅在对应表为空时写入：内置 admin 账号 + 少量标注「示例」的供应商 / 模型 / Key 记录，便于首次进入看到界面形态；示例 Key 为占位值，不可用于真实调用。
-- SQLite 文件可直接备份 / 删除（删除后重启重新初始化）；切换 MySQL 只需把 `database.default.type` 改为 `mysql`、填写连接参数，并在 `main.go` 放开 mysql 驱动空白导入，表结构由程序自动创建（MySQL 需先建好空库、字符集 utf8mb4）。
+- MySQL 需先建好空库（字符集 utf8mb4，表结构由程序自动创建）；切回 SQLite 只需把 `database.default.type` 改为 `sqlite`、在 `main.go` 放开 sqlite 驱动导入，数据文件按配置路径生成。
 - 时间字段以后端本地时间字符串（`YYYY-MM-DD HH:mm:ss`）输出，前端直接展示；数据库可按需调整时区配置。
 
 ## 对话转发规则与计费

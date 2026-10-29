@@ -6,9 +6,10 @@
 package main
 
 import (
-	_ "github.com/gogf/gf/contrib/drivers/sqlite/v2" // SQLite 纯 Go 驱动（glebarez，无 CGO）
-	// 切换 MySQL 时启用下面一行（同时在 config.yaml 中把 database.default.type 改为 mysql）：
-	// _ "github.com/gogf/gf/contrib/drivers/mysql/v2"
+	// MySQL 驱动（当前默认数据库，连接参数见 manifest/config/config.yaml database.default）
+	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
+	// 切换回 SQLite 时启用下面一行（纯 Go 无 CGO），并把 config.yaml 的 type 改回 sqlite：
+	// _ "github.com/gogf/gf/contrib/drivers/sqlite/v2"
 	"github.com/gogf/gf/v2/os/gctx"
 
 	"apikey-manager/internal/cmd"

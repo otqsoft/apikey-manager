@@ -19,20 +19,18 @@ server:
 # -----------------------------------------------------------------------------
 database:
   default:
-    # SQLite（纯 Go 驱动 glebarez，CGO_ENABLED=0 可直接构建运行）
-    # 注意：GoFrame gdb 配置键为 type（对应驱动注册名 sqlite）
-    type: "sqlite"
-    name: "./data/apikey.db"
+    # MySQL（当前默认；需先创建空库 apikey_manager，字符集 utf8mb4，表结构由程序自动创建）
+    type:    "mysql"
+    host:    "127.0.0.1"
+    port:    "3306"
+    name:    "apikey_manager"
+    user:    "root"
+    pass:    "111111"
+    charset: "utf8mb4"
 
-    # ---- MySQL 示例（切换时把上面 sqlite 两段注释掉，启用下面内容）----
-    # type:    "mysql"
-    # host:    "127.0.0.1"
-    # port:    "3306"
-    # name:    "apikey_manager"
-    # user:    "root"
-    # pass:    "root"
-    # charset: "utf8mb4"
-    # debug:   true
+    # ---- SQLite 示例（切换时把上面 mysql 节注释掉，启用下面内容，并在 main.go 放开 sqlite 驱动导入）----
+    # type: "sqlite"
+    # name: "./data/apikey.db"
 
 # JWT 鉴权配置
 jwt:

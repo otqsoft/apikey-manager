@@ -97,27 +97,39 @@
         </div>
       </div>
 
-      <!-- 输入区 -->
+      <!-- 输入区：一体化胶囊容器，发送按钮内嵌右下角 -->
       <div class="input-area">
-        <el-input
-          v-model="inputText"
-          type="textarea"
-          :rows="3"
-          resize="none"
-          placeholder="输入问题，Enter 发送，Shift+Enter 换行"
-          :disabled="streaming"
-          @keydown.enter.exact.prevent="onSend"
-        />
-        <el-button type="primary" class="send-btn" :loading="streaming" @click="onSend">发送</el-button>
+        <div class="input-shell" :class="{ focused: inputFocused }">
+          <textarea
+            ref="inputEl"
+            v-model="inputText"
+            class="input-textarea"
+            rows="3"
+            placeholder="输入问题…"
+            :disabled="streaming"
+            @focus="inputFocused = true"
+            @blur="inputFocused = false"
+            @keydown.enter.exact.prevent="onSend"
+          />
+          <div class="input-actions">
+            <span class="input-hint">Enter 发送 · Shift + Enter 换行</span>
+            <button v-if="streaming" class="send-btn stop" title="停止生成" @click="onStop">
+              <span class="stop-icon" />
+            </button>
+            <button v-else class="send-btn" :disabled="!inputText.trim()" title="发送" @click="onSend">
+              <el-icon :size="17"><Promotion /></el-icon>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowRight, Delete, Plus } from '@element-plus/icons-vue'
+import { ArrowRight, Delete, Plus, Promotion } from '@element-plus/icons-vue'
 import { createSession, deleteSession, getSessionMessages, getSessionPage, streamCompletions } from '@/api/chat'
 import { getMyKeys } from '@/api/keys'
 import type { ChatMessage, ChatSession, MyKeyItem } from '@/types'
@@ -154,7 +166,10 @@ const sessions = ref<ChatSession[]>([])
 const activeSessionId = ref<number | null>(null)
 const messages = ref<ChatMessage[]>([])
 const inputText = ref('')
+const inputFocused = ref(false)
+const inputEl = ref<HTMLTextAreaElement>()
 const streaming = ref(false)
+const abortRef = ref<AbortController | null>(null)
 const totalCost = ref(0)
 const messageBox = ref<HTMLElement>()
 
@@ -254,6 +269,8 @@ async function onSend() {
   }
   messages.value.push(assistant)
   streaming.value = true
+  const ac = new AbortController()
+  abortRef.value = ac
 
   try {
     await streamCompletions(
@@ -293,32 +310,44 @@ async function onSend() {
           ElMessage.error(msg || '上游模型返回错误')
           if (!assistant.content) assistant.content = '（生成失败，请稍后重试）'
         }
-      }
+      },
+      ac.signal
     )
   } finally {
     streaming.value = false
+    abortRef.value = null
     scrollToBottom()
+    inputEl.value?.focus()
   }
 }
 
+/** 停止生成：中断读取，已收到的增量内容保留展示 */
+function onStop() {
+  abortRef.value?.abort()
+}
+
+onBeforeUnmount(() => {
+  abortRef.value?.abort()
+})
+
 onMounted(async () => {
   await Promise.all([loadMyKeys(), loadSessions()])
+  inputEl.value?.focus()
 })
 </script>
 
 <style scoped>
 .chat-page {
   display: flex;
-  height: calc(100vh - 88px);
-  background: #fff;
-  border-radius: 12px;
+  height: calc(100vh - 72px);
+  background: transparent;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid #e8edf3;
 }
 .session-panel {
-  width: 250px;
-  border-right: 1px solid #e8edf3;
-  background: #f8fafc;
+  width: 260px;
+  border-right: 1px solid #e8eef6;
+  background: transparent;
   display: flex;
   flex-direction: column;
 }
@@ -326,27 +355,29 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 14px;
+  padding: 14px 14px 10px;
   font-weight: 600;
-  color: #1f2937;
-  border-bottom: 1px solid #eef2f7;
+  font-size: 13px;
+  color: #334155;
 }
 .session-list {
   flex: 1;
-  padding: 8px;
+  padding: 0 8px 8px;
 }
 .session-item {
   position: relative;
-  padding: 10px 26px 10px 12px;
-  border-radius: 8px;
+  padding: 10px 28px 10px 12px;
+  border-radius: 10px;
   cursor: pointer;
-  margin-bottom: 6px;
-  background: #fff;
-  border: 1px solid #eef2f7;
+  margin-bottom: 4px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+.session-item:hover {
+  background: #eef3fa;
 }
 .session-item.active {
-  background: #e6effd;
-  border-color: #b3c8f8;
+  background: #e3edfb;
 }
 .session-title {
   font-size: 13px;
@@ -358,13 +389,18 @@ onMounted(async () => {
 .session-meta {
   font-size: 11px;
   color: #94a3b8;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 .session-del {
   position: absolute;
   right: 8px;
   top: 12px;
   color: #c0c4cc;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.session-item:hover .session-del {
+  opacity: 1;
 }
 .session-del:hover {
   color: #f56c6c;
@@ -379,9 +415,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #eef2f7;
-  background: #fff;
+  padding: 10px 18px;
+  border-bottom: 1px solid #e8eef6;
 }
 .key-select {
   width: 260px;
@@ -395,8 +430,7 @@ onMounted(async () => {
 .message-box {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 22px;
-  background: #f3f6fb;
+  padding: 20px 24px;
 }
 .msg-row {
   display: flex;
@@ -424,15 +458,13 @@ onMounted(async () => {
 .bubble-avatar.user {
   background: #94a3b8;
 }
-/* assistant 气泡占满除头像外的可用宽度（白底圆角卡片） */
+/* assistant 气泡占满除头像外的可用宽度（白底圆角，无边框无阴影） */
 .bubble {
   flex: 1;
   min-width: 0;
   padding: 10px 14px 12px;
   border-radius: 12px;
   background: #fff;
-  border: 1px solid #e8edf3;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 /* user 气泡靠右、约 60% 宽、蓝底白字 */
 .msg-row.user .bubble {
@@ -440,7 +472,6 @@ onMounted(async () => {
   max-width: 60%;
   background: #2563eb;
   color: #fff;
-  border-color: #2563eb;
 }
 .bubble-content {
   line-height: 1.65;
@@ -629,19 +660,98 @@ onMounted(async () => {
   color: #94a3b8;
   text-align: right;
 }
+/* ---------- 一体化输入区：容器即输入框，发送按钮内嵌右下角 ---------- */
 .input-area {
-  display: flex;
-  gap: 10px;
-  padding: 12px 16px;
-  background: #fff;
-  border-top: 1px solid #eef2f7;
-  box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.06);
-  align-items: flex-end;
+  padding: 6px 18px 16px;
 }
-.input-area .el-textarea {
-  flex: 1;
+.input-shell {
+  max-width: 860px;
+  margin: 0 auto;
+  border: 1px solid #d9e2ee;
+  border-radius: 16px;
+  background: #fff;
+  padding: 10px 12px 8px;
+  transition: border-color 0.15s ease;
+}
+.input-shell.focused {
+  border-color: #3b82f6;
+}
+.input-textarea {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1f2937;
+  font-family: inherit;
+}
+.input-textarea::placeholder {
+  color: #a8b3c5;
+}
+.input-textarea:disabled {
+  color: #94a3b8;
+}
+.input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.input-hint {
+  font-size: 11px;
+  color: #b0bacb;
+  user-select: none;
 }
 .send-btn {
-  height: 40px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563eb;
+  color: #fff;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.send-btn:hover:not(:disabled) {
+  background: #1d4fc0;
+}
+.send-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.send-btn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+/* 停止按钮：白底方块图标 */
+.send-btn.stop {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+.send-btn.stop:hover {
+  border-color: #f56c6c;
+  color: #f56c6c;
+}
+.stop-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: currentColor;
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+  .send-btn,
+  .session-item,
+  .input-shell {
+    transition: none;
+  }
 }
 </style>

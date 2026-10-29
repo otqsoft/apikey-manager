@@ -2,14 +2,16 @@
   <el-container class="layout-container">
     <el-aside width="220px" class="layout-aside">
       <div class="logo">
-        <el-icon><Key /></el-icon>
-        <span>LLM 密钥管理台</span>
+        <div class="logo-mark">
+          <el-icon :size="16"><Key /></el-icon>
+        </div>
+        <span class="logo-text">API Key 控制台</span>
       </div>
       <el-menu
         :default-active="activeMenu"
         router
         background-color="transparent"
-        text-color="#c3cede"
+        text-color="#8fa5c2"
         active-text-color="#ffffff"
         class="side-menu"
       >
@@ -18,6 +20,11 @@
           <template #title>{{ item.title }}</template>
         </el-menu-item>
       </el-menu>
+
+      <div class="aside-footer">
+        <span class="env-dot" />
+        后端 :8090 · MySQL
+      </div>
     </el-aside>
 
     <el-container>
@@ -26,12 +33,12 @@
         <div class="header-user">
           <el-dropdown @command="onCommand">
             <span class="user-trigger">
-              <el-icon class="avatar-icon"><UserFilled /></el-icon>
+              <span class="avatar-circle">{{ avatarChar }}</span>
               <span class="user-name">{{ store.displayName }}</span>
-              <el-tag size="small" :type="store.isAdmin ? 'danger' : 'info'" class="role-tag">
+              <el-tag size="small" :type="store.isAdmin ? 'danger' : 'info'" effect="light" class="role-tag" round>
                 {{ store.isAdmin ? '管理员' : '普通用户' }}
               </el-tag>
-              <el-icon><ArrowDown /></el-icon>
+              <el-icon class="arrow"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -64,6 +71,9 @@ const route = useRoute()
 const router = useRouter()
 
 const pwdDialogVisible = ref(false)
+
+/** 头像字符：展示名首字符，兜底「用」 */
+const avatarChar = computed(() => (store.displayName || '用').trim().charAt(0).toUpperCase())
 
 interface MenuItem {
   path: string
@@ -106,80 +116,127 @@ async function onCommand(cmd: string) {
 .layout-container {
   height: 100vh;
 }
+/* 暗科技蓝侧边栏 */
 .layout-aside {
-  background: linear-gradient(180deg, #1e293b 0%, #172033 100%);
+  background: linear-gradient(180deg, #0a1628 0%, #0d1d36 100%);
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 .logo {
-  height: 58px;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 18px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  background: linear-gradient(90deg, #2563eb, #1d4fc0);
+  gap: 10px;
+  padding: 0 16px;
+  flex-shrink: 0;
 }
-.logo .el-icon {
-  font-size: 20px;
-  color: #dbeafe;
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #00d4ff);
+}
+.logo-text {
+  color: #f1f5f9;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 .side-menu {
   border-right: none;
-  padding: 8px 10px;
+  padding: 10px 10px;
+  flex: 1;
 }
 .side-menu :deep(.el-menu-item) {
   border-radius: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   position: relative;
+  height: 42px;
+  line-height: 42px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.side-menu :deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.05);
 }
 .side-menu :deep(.el-menu-item.is-active) {
-  background: rgba(37, 99, 235, 0.18) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.22), rgba(0, 212, 255, 0.1));
+  color: #fff;
 }
 .side-menu :deep(.el-menu-item.is-active)::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 8px;
-  bottom: 8px;
+  top: 9px;
+  bottom: 9px;
   width: 3px;
   border-radius: 2px;
-  background: #60a5fa;
+  background: #00d4ff;
 }
+.aside-footer {
+  padding: 12px 18px;
+  font-size: 11px;
+  color: #4b6079;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.env-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* 轻量顶栏：白底、无阴影 */
 .layout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  border-bottom: 1px solid #e8edf3;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+  border-bottom: 1px solid #e8eef6;
 }
 .header-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #1f2937;
 }
 .user-trigger {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   outline: none;
 }
-.avatar-icon {
-  font-size: 20px;
-  color: #2563eb;
+.avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #00d4ff);
 }
 .user-name {
   font-size: 14px;
   color: #303133;
 }
-.role-tag {
-  margin: 0 4px;
+.arrow {
+  font-size: 12px;
+  color: #94a3b8;
 }
 .layout-main {
-  background-color: #f3f5f9;
-  padding: 16px;
+  background-color: #f4f7fc;
+  padding: 14px 16px;
+  overflow-y: auto;
 }
 </style>

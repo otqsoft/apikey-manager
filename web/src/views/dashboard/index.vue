@@ -13,7 +13,7 @@
 
     <!-- 统计卡：admin 七项 / user 五项（GET /api/stats/overview） -->
     <el-row :gutter="16">
-      <el-col v-for="card in statCards" :key="card.key" :xs="12" :sm="8" :md="6" :lg="3" class="card-col">
+      <el-col v-for="card in statCards" :key="card.key" :xs="12" :sm="8" :md="6" :lg="4" :xl="3" class="card-col">
         <el-card shadow="never" class="stat-card">
           <div class="stat-icon" :style="{ background: card.bg }">
             <el-icon :size="24"><component :is="card.icon" /></el-icon>
@@ -135,9 +135,9 @@ const statCards = computed(() => {
     return [
       { key: 'provider', label: '供应商数', value: formatInt(adminData.value.provider_count), icon: 'Connection', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
       { key: 'model', label: '模型数', value: formatInt(adminData.value.model_count), icon: 'Files', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' },
-      { key: 'key', label: 'API-KEY 数', value: formatInt(adminData.value.key_count), icon: 'Key', bg: 'linear-gradient(135deg,#fef3c7,#fffbeb)' },
-      { key: 'user', label: '用户数', value: formatInt(adminData.value.user_count), icon: 'User', bg: 'linear-gradient(135deg,#fee2e2,#fef2f2)' },
-      { key: 'todayTokens', label: '今日 Token', value: formatInt(adminData.value.today_tokens), icon: 'DataLine', bg: 'linear-gradient(135deg,#e0f2fe,#f0f9ff)' },
+      { key: 'key', label: 'Key 数', value: formatInt(adminData.value.key_count), icon: 'Key', bg: 'linear-gradient(135deg,#fef3c7,#fffbeb)' },
+      // { key: 'user', label: '用户数', value: formatInt(adminData.value.user_count), icon: 'User', bg: 'linear-gradient(135deg,#fee2e2,#fef2f2)' },
+      { key: 'todayTokens', label: '今日Token', value: formatInt(adminData.value.today_tokens), icon: 'DataLine', bg: 'linear-gradient(135deg,#e0f2fe,#f0f9ff)' },
       { key: 'todayCost', label: '今日费用', value: formatMoney(adminData.value.today_cost), icon: 'Money', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
       { key: 'totalCost', label: '累计费用', value: formatMoneyCompact(adminData.value.total_cost), icon: 'Wallet', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' }
     ]
@@ -338,6 +338,11 @@ watch(metric, loadRankings)
 </script>
 
 <style scoped>
+/* 统一无边框轻量卡片 */
+.dashboard :deep(.el-card) {
+  border: none;
+  border-radius: 12px;
+}
 .welcome-card {
   margin-bottom: 16px;
   border-radius: 12px;
@@ -371,22 +376,29 @@ watch(metric, loadRankings)
 .stat-card :deep(.el-card__body) {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   height: 100%;
 }
 .stat-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #2563eb;
   flex-shrink: 0;
 }
+.stat-body {
+  flex: 1;
+  min-width: 0;
+}
 .stat-label {
   color: #94a3b8;
   font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stat-value {
   font-size: 21px;
