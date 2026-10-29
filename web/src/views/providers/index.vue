@@ -13,7 +13,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
+          <el-button type="primary" plain :icon="Search" @click="onSearch">查询</el-button>
           <el-button plain :icon="RefreshLeft" @click="onReset">重置</el-button>
           <el-button type="primary" :icon="Plus" @click="openCreate">新增供应商</el-button>
         </el-form-item>
@@ -23,19 +23,28 @@
     <!-- 表格 -->
     <el-card shadow="never">
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无供应商数据，点击右上角「新增供应商」录入">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="供应商名称" min-width="140" />
-        <el-table-column label="协议格式" width="110">
+        <el-table-column prop="id" label="ID" width="60" fixed="left" />
+        <el-table-column prop="name" label="供应商名称" min-width="140" show-overflow-tooltip fixed="left" />
+        <el-table-column label="协议格式" width="120">
           <template #default="{ row }">
             <el-tag :type="row.api_format === 'openai' ? 'primary' : 'warning'">{{ row.api_format }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="base_url" label="Base URL" min-width="220" show-overflow-tooltip />
-        <el-table-column label="余额（元）" width="110">
+        <el-table-column label="Base URL" min-width="260">
+          <template #default="{ row }">
+            <div class="copy-cell">
+              <span class="cell-text" :title="row.base_url">{{ row.base_url }}</span>
+              <el-tooltip content="复制 Base URL" placement="top">
+                <el-button link type="primary" :icon="CopyDocument" @click="copyText(row.base_url, 'Base URL')" />
+              </el-tooltip>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="余额（元）" width="120">
           <template #default="{ row }">¥{{ Number(row.balance || 0).toFixed(2) }}</template>
         </el-table-column>
-        <el-table-column prop="max_concurrency" label="最大并发" width="90" align="center" />
-        <el-table-column prop="timeout_seconds" label="超时(秒)" width="90" align="center" />
+        <el-table-column prop="max_concurrency" label="最大并发" width="100" align="center" />
+        <el-table-column prop="timeout_seconds" label="超时(秒)" width="100" align="center" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-switch
@@ -45,7 +54,7 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
@@ -118,7 +127,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, RefreshLeft, Search } from '@element-plus/icons-vue'
+import { CopyDocument, Plus, RefreshLeft, Search } from '@element-plus/icons-vue'
 import {
   createProvider,
   deleteProvider,
@@ -165,6 +174,20 @@ function onReset() {
 }
 
 onMounted(loadData)
+
+/** 复制文本到剪贴板（Base URL 等单元格内容） */
+async function copyText(text: string, label: string) {
+  if (!text) {
+    ElMessage.warning(`${label}为空`)
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success(`${label}已复制到剪贴板`)
+  } catch {
+    ElMessage.warning('剪贴板写入失败，请手动复制')
+  }
+}
 
 // ---------------- 弹窗表单 ----------------
 const dialogVisible = ref(false)
@@ -272,5 +295,21 @@ async function onDelete(row: Row) {
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
+}
+.cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+/* 文本+复制按钮的单元格：按钮恒可见，文本截断省略 */
+.copy-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.copy-cell .el-button {
+  flex-shrink: 0;
 }
 </style>

@@ -6,7 +6,7 @@
           <el-input v-model="query.keyword" placeholder="用户名 / 显示名" clearable style="width: 220px" @keyup.enter="onSearch" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
+          <el-button type="primary" plain :icon="Search" @click="onSearch">查询</el-button>
           <el-button plain :icon="RefreshLeft" @click="onReset">重置</el-button>
           <el-button type="primary" :icon="Plus" @click="openCreate">新增用户</el-button>
         </el-form-item>
@@ -15,10 +15,10 @@
 
     <el-card shadow="never">
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无用户数据，点击右上角「新增用户」录入">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="username" label="登录账号" min-width="130" />
-        <el-table-column prop="display_name" label="显示名" min-width="130" />
-        <el-table-column label="角色" width="100" align="center">
+        <el-table-column prop="id" label="ID" width="60" fixed="left" show-overflow-tooltip />
+        <el-table-column prop="username" label="登录账号" min-width="100" fixed="left" show-overflow-tooltip />
+        <el-table-column prop="display_name" label="显示名" min-width="150" show-overflow-tooltip />
+        <el-table-column label="角色" width="120" align="left">
           <template #default="{ row }">
             <el-tag :type="row.role === 'admin' ? 'danger' : 'info'">{{ row.role === 'admin' ? '管理员' : '普通用户' }}</el-tag>
           </template>
@@ -33,14 +33,14 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="170">
+        <el-table-column label="创建时间" width="180">
           <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" type="warning" @click="openResetPwd(row)">重置密码</el-button>
-            <el-button size="small" type="info" @click="openUserKeys(row)">已分配 Key</el-button>
+            <!-- <el-button size="small" type="info" @click="openUserKeys(row)">已分配 Key</el-button> -->
             <el-button
               size="small"
               type="danger"

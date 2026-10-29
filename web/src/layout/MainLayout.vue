@@ -21,10 +21,10 @@
         </el-menu-item>
       </el-menu>
 
-      <div class="aside-footer">
+      <!-- <div class="aside-footer">
         <span class="env-dot" />
         后端 :8090 · MySQL
-      </div>
+      </div> -->
     </el-aside>
 
     <el-container>

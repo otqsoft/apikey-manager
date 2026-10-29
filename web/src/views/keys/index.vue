@@ -11,7 +11,7 @@
           <el-input v-model="query.keyword" placeholder="名称 / 掩码 key" clearable style="width: 220px" @keyup.enter="onSearch" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
+          <el-button type="primary" plain :icon="Search" @click="onSearch">查询</el-button>
           <el-button plain :icon="RefreshLeft" @click="onReset">重置</el-button>
           <el-button type="primary" :icon="Plus" @click="openCreate">新增 Key</el-button>
         </el-form-item>
@@ -20,9 +20,9 @@
 
     <el-card shadow="never">
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无 Key 数据，点击右上角「新增 Key」录入">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="名称" min-width="130" />
-        <el-table-column label="密钥（掩码）" min-width="180">
+        <el-table-column prop="id" label="ID" width="60" fixed="left" />
+        <el-table-column prop="name" label="名称" min-width="100" fixed="left" show-overflow-tooltip />
+        <el-table-column label="API-KEY" min-width="180" fixed="left" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="masked-key">{{ row.api_key || '******' }}</span>
             <el-tooltip content="获取明文并复制" placement="top">
@@ -30,7 +30,7 @@
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="provider_name" label="供应商" min-width="130">
+        <el-table-column prop="provider_name" label="供应商" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">{{ row.provider_name || '-' }}</template>
         </el-table-column>
         <el-table-column label="有效期" width="110">
@@ -50,7 +50,7 @@
             <div class="quota-text">已用 ¥{{ Number(row.used_quota || 0).toFixed(2) }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="86" align="center">
+        <el-table-column label="状态" width="90" align="center" >
           <template #default="{ row }">
             <el-switch :model-value="row.status === 1" :loading="row._switching" @change="(val: boolean) => onToggleStatus(row, val)" />
           </template>
@@ -87,8 +87,9 @@
             <el-option v-for="p in providerOptions" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="完整 Key" prop="api_key">
-          <el-input v-model="form.api_key" type="textarea" :rows="2" :placeholder="form.id ? '留空表示不修改原 Key' : 'sk-... 完整明文，仅本地落库'" />
+        <el-form-item label="API-KEY" prop="api_key">
+          <el-input v-model="form.api_key" placeholder="sk-... 完整明文，仅本地落库" clearable />
+          <div v-if="form.id" class="tip-text" style="margin-left: 0; width: 100%">留空表示不修改原 Key</div>
         </el-form-item>
         <el-form-item label="有效日期">
           <el-date-picker v-model="form.expire_date" type="date" value-format="YYYY-MM-DD" placeholder="空表示永久有效" style="width: 100%" />
@@ -215,7 +216,7 @@ const form = reactive<ApiKeyForm & { id?: number }>({
 const rules: FormRules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   provider_id: [{ required: true, message: '请选择所属供应商', trigger: 'change' }],
-  api_key: [{ required: true, message: '请输入完整 Key', trigger: 'blur' }]
+  api_key: [{ required: true, message: '请输入 API-KEY', trigger: 'blur' }]
 }
 
 function openCreate() {

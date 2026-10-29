@@ -53,6 +53,14 @@ body {
 .el-table {
   border-radius: 8px;
 }
+/* 表格：去掉列间垂直分隔线，仅保留横向行线 */
+.el-table--border .el-table__cell {
+  border-right: none;
+}
+.el-table--border::after,
+.el-table--border .el-table__inner-wrapper::after {
+  display: none;
+}
 
 /* 分页器居中靠右统一 */
 .el-pagination {

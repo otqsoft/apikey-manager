@@ -4,7 +4,7 @@
     <aside class="session-panel">
       <div class="session-header">
         <span>会话列表</span>
-        <el-button size="small" type="primary" plain :icon="Plus" :disabled="streaming" @click="newSession">新建</el-button>
+        <el-button size="small" type="primary" plain circle :icon="Plus" :disabled="streaming" @click="newSession"></el-button>
       </div>
       <el-scrollbar class="session-list">
         <div
@@ -254,7 +254,7 @@ async function onSend() {
 
   // assistant 占位消息：实时对话用当前选中 Key 的供应商名 + 选中模型兜底头部标签
   const currentKey = myKeys.value.find((k) => k.id === selectedKeyId.value)
-  const assistant: ChatMessage = {
+  messages.value.push({
     role: 'assistant',
     content: '',
     reasoning: '',
@@ -266,8 +266,10 @@ async function onSend() {
     cached_tokens: 0,
     total_tokens: 0,
     cost: 0
-  }
-  messages.value.push(assistant)
+  })
+  // 关键：必须通过响应式代理引用修改字段。若直接持有原始对象引用做 +=，
+  // 变更不触发重渲染 → 流式期间界面静止、结束时一次性全部显示（Vue3 reactive 陷阱）
+  const assistant = messages.value[messages.value.length - 1]
   streaming.value = true
   const ac = new AbortController()
   abortRef.value = ac
@@ -347,7 +349,7 @@ onMounted(async () => {
 .session-panel {
   width: 260px;
   border-right: 1px solid #e8eef6;
-  background: transparent;
+  background: #f7f9fc;
   display: flex;
   flex-direction: column;
 }
@@ -417,6 +419,7 @@ onMounted(async () => {
   gap: 12px;
   padding: 10px 18px;
   border-bottom: 1px solid #e8eef6;
+  background: #fff;
 }
 .key-select {
   width: 260px;
@@ -431,6 +434,7 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   padding: 20px 24px;
+  background: #eef2f8;
 }
 .msg-row {
   display: flex;
@@ -466,12 +470,16 @@ onMounted(async () => {
   border-radius: 12px;
   background: #fff;
 }
-/* user 气泡靠右、约 60% 宽、蓝底白字 */
+/* user 气泡：浅蓝底、宽度随文本内容自适应（上限 72%），不拉伸占满 */
+.msg-row.user {
+  justify-content: flex-end;
+}
 .msg-row.user .bubble {
-  flex: 0 1 60%;
-  max-width: 60%;
-  background: #2563eb;
-  color: #fff;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 72%;
+  background: #d6e6ff;
+  color: #1f2937;
 }
 .bubble-content {
   line-height: 1.65;
@@ -663,6 +671,7 @@ onMounted(async () => {
 /* ---------- 一体化输入区：容器即输入框，发送按钮内嵌右下角 ---------- */
 .input-area {
   padding: 6px 18px 16px;
+  background: #eef2f8;
 }
 .input-shell {
   max-width: 860px;
