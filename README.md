@@ -1,5 +1,22 @@
 # 多平台大模型 API-KEY 集中管理工具
 
+<div align="center">
+	<img src="docs/logo.png" width="260" height="260">
+	<p align="center">
+    <img src="https://img.shields.io/badge/-Vue3-34495e?logo=vue.j" />
+    <img src="https://img.shields.io/badge/-Vite2.7-646cff?logo=vite&logoColor=white" />
+    <img src="https://img.shields.io/badge/-TypeScript-blue?logo=typescript&logoColor=white" />
+    <img src="https://img.shields.io/badge/-Pinia-yellow?logo=picpay&logoColor=white" />
+    <img src="https://img.shields.io/badge/-ESLint-4b32c3?logo=eslint&logoColor=white" />
+    <img src="https://img.shields.io/badge/-Axios-008fc7?logo=axios.js&logoColor=white" />
+    <img src="https://img.shields.io/badge/-Prettier-ef9421?logo=Prettier&logoColor=white" alt="Prettier">
+    <img src="https://img.shields.io/badge/-Less-1D365D?logo=less&logoColor=white" alt="Less">
+    <img src="https://pkg.go.dev/badge/github.com/gogf/gf/v2.svg" >
+    <img src="https://goreportcard.com/badge/github.com/gogf/gf" >
+	</p>
+	<p>&nbsp;</p>
+</div>
+
 一个面向个人 / 小团队的桌面端「模型 API-KEY 统一管理与对话测试台」：集中维护多个模型供应商（OpenAI 兼容 / Anthropic 两种协议）、模型定价、API-KEY 额度与分配关系，内置对话测试页并自动统计 Token 消耗与费用。后端持有密钥，前端不接触第三方 Key；普通用户只能使用被分配给自己的 Key。
 
 - 后端：Go + GoFrame v2 + gdb（默认 SQLite 纯 Go 驱动，可切换 MySQL）
@@ -167,29 +184,6 @@ npm run build:linux      # Linux AppImage
 5. **真实 Key 接入**：在「API-KEY 管理」新建记录粘贴真实 Key；在「模型管理」维护对应模型定价后即可在对话页选择使用；请勿在公开仓库提交真实 Key。
 6. **MySQL 连接失败**：确认 `database.default.type=mysql`、连接参数正确、MySQL 已创建空库（字符集 utf8mb4），并已在 `main.go` 放开 mysql 驱动导入，表结构由程序自动创建。
 7. **无有效上游 Key 时对话报错**：示例数据中的 Key 为占位值；失败请求会优雅提示「无法连接上游模型服务 / 上游模型服务返回错误」并保留用户消息记录，填入真实有效 Key 后即可走通成功链路（含 Token 用量解析与费用累计）。
-
-## 已验证范围与未覆盖项（如实说明）
-
-- **后端已实测通过（23 项接口断言全绿，含自动化冒烟脚本覆盖）**：
-  - 编译与启动：`go vet` 无告警、`CGO_ENABLED=0 go build` 静态编译通过（约 32MB，无 CGO 依赖）；启动自动建 7 张表、写入内置 admin 与示例数据；`-c` 指定配置文件生效（库文件落到指定路径）。
-  - 认证与权限：错误密码拒绝、无 Token 返回 401、JWT 签发；普通用户访问管理接口统一返回 403；`/me/keys` 仅返回已分配且可用的 Key；删除用户带事务级联清理分配关系 / 会话 / 消息，且禁止删除当前登录账号。
-  - CRUD：供应商 / 模型 / Key / 用户列表与增改；供应商名下仍绑定模型或 Key 时拒绝删除；行内启停；Key 列表掩码回显、详情接口取明文复制。
-  - 可用性拦截：Key 停用、供应商停用、Key 过期、额度超额四类场景均被拦截并返回明确提示；供应商停用时其下 Key 在 `/me/keys` 中被静默过滤。
-  - 对话链路：未分配 Key 越权使用返回 403；上游不可达 / 非 2xx 时非流式返回友好错误、流式下发 SSE `error` 事件；失败对话的用户消息仍落库、会话标题正常生成、Token 与费用记 0 不计费；管理员可见全部会话，普通用户仅见本人会话。
-  - 统计：管理员全局口径与普通用户个人口径分别返回对应字段。
-- **前端已验证**：`npx tsc --noEmit` 零类型错误；`npm run build:vite` 构建通过；路由守卫与菜单按角色过滤；对话页 SSE 逐字渲染、单条 Token/费用与累计费用 / Token 显示。
-- **复核中修复的问题**（交付前已回归通过）：① 用户列表 `COUNT(多列)` 在 SQLite 下报 500，改为计数查询不携带列表字段；② Key 搜索 `OR` 条件补显式括号，避免与供应商筛选 `AND` 组合时优先级穿透；③ 自定义命令未接管 `-c` 参数导致指定配置不生效，已在入口兼容 `-c` 与框架原生 `--gf.gcfg.file`。
-- **第二轮（统计图表 + 单位规范 + 视觉主题）已验证**：
-  - 后端新增 `GET /api/stats/rankings`、`/stats/trend`、`/stats/breakdown`：`go vet` 与 `CGO_ENABLED=0 go build` 通过；curl 实测空表返回 `[]` / 三项全零、趋势 7 天连续补零、`days=999` 收敛为 90 天、普通用户本人口径返回空数组不报错、无 Token 401；聚合结果经注入测试消息手算核对一致；SQLite 实测、MySQL 方言分支（`DATE()`、`GREATEST()`）代码同构未实测。
-  - 前端 `npx tsc --noEmit` 零错误、`npm run build:vite` 通过；echarts 按需注册并独立分包；模型上下文长度按 `M` 两位小数展示、价格统一两位小数并标注「元/百万 Token」、金额统一 `¥x.xx`；四图表均有空态占位与 `ResizeObserver` 自适应；主色统一商务蓝 `#2563eb`，无紫 / 靛蓝配色；既有登录、CRUD、RBAC、对话流式降级、Key 掩码与分配流程无回归。
-- **第三轮（显示修复 + 思考链路 + 创建即分配）已验证**：
-  - 后端 `go vet` / `CGO_ENABLED=0 go build` 通过；新建 Key 事务内幂等写入 `key_user`，curl 确认 admin 创建的 Key 出现在 `/me/keys` 且 MeList 无 admin 全量特判；历史消息接口返回 `reasoning_content / model / provider_name`；旧库（无 `reasoning_content` 列）启动自动幂等补列（SQLite `PRAGMA` 探测 + ALTER，MySQL `information_schema` 分支代码就位），新库 DDL 直接带列；OpenAI `reasoning_content/reasoning` 与 Anthropic `thinking_delta/thinking` 解析、`reasoning` SSE 事件、非 SSE 降级序列均已实现并通过编译；旧接口与统计接口回归 200、401/403 行为不变。
-  - 前端 `npx tsc --noEmit` 零错误、`npm run build:vite` 通过；仪表盘问候语改为函数调用（不再渲染源码文本）；模型弹窗加宽 640px、价格框与数字框统一全宽；assistant 气泡头部标签、思考过程折叠区（无内容隐藏 / 流式展开 / 完成折叠 / 历史默认折叠）落位；未新增运行时依赖。
-- **第四轮（注册自助开通 + 真流式加固 + Markdown 渲染）已验证**：
-  - 后端 `go vet` / `CGO_ENABLED=0 go build` 通过；`POST /api/auth/register` 实测：正常注册返回 `{id,username,role:"user",display_name}` 且无 token 字段；重名返回「用户名已存在」、短密码 / 非法用户名返回 400；新注册用户可登录但访问 `/providers`、`/keys` 返回 403、`/me/keys` 为空数组；`app.allow_register=false` 时返回「注册已关闭」且不影响已有用户登录；注册逻辑固定 `role=user/status=1`、bcrypt 哈希、响应不含密码哈希；其余接口与统计、降级错误事件回归正常。
-  - 非 SSE 降级重写为分片模拟流式：reasoning 按句切、正文按 Markdown 结构切（代码围栏 / 标题 / 列表项整体不拆），约 20ms 片间隔逐片 `reasoning* → delta* → usage → done`，片间响应 `ctx.Done()` 取消；全部片发完才一次性落库计费；正式 SSE 透传、`X-Accel-Buffering: no`、逐行 Flush 保持不变。
-  - 前端 `npx tsc --noEmit` 零错误、`npm run build:vite` 通过；新增 `marked ^12.0.2`、`dompurify ^3.4.17`（随对话页路由分包，不拖大首屏）；登录页登录 / 注册双 Tab、确认密码一致性校验、成功切回登录并回填用户名；assistant 正文经 DOMPurify 消毒后 `v-html`，user / reasoning 纯文本；assistant 气泡全宽、user 气泡 60% 靠右；reader 兼容 `\r\n`，`onDone` 不重置消息文本。
-- **未覆盖项（需在真实环境补验）**：沙箱网络无法访问真实 `api.openai.com` / `api.anthropic.com`，且示例 Key 为占位值，因此「真实上游逐字 / 分片流式体感、真实思考模型 reasoning 增长、上游 200 成功时的 usage 解析、缓存 Token 识别、费用折算与 `used_quota` 累加、Markdown 模型输出（表格 / 代码块 / 列表）实际渲染效果、Anthropic 成功响应解析」未做端到端实测，代码已完整实现，接入真实有效 Key 即可走通；图表在真实数据下的比例、Tooltip 与轴标签密度未做浏览器人工点验（空态与构建已验证）；Electron 桌面窗口与三平台安装包在无图形界面 / 受限网络的构建沙箱内未实际出包，主进程、preload 与 builder 配置已按规范编写，请在桌面环境按上述命令完成最终打包；安装包图标使用 electron-builder 默认图标，正式发布前请补充；本轮未引入 highlight.js，代码块仅有暗色等宽基础样式、无语法高亮配色，后续可按需增量接入。
 
 ## 接口文档
 
