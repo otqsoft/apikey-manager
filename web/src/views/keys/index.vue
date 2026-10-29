@@ -33,7 +33,7 @@
         <el-table-column prop="provider_name" label="供应商" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">{{ row.provider_name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="有效期" width="110">
+        <el-table-column label="有效期" width="120">
           <template #default="{ row }">{{ row.expire_date || '永久' }}</template>
         </el-table-column>
         <el-table-column label="额度使用" min-width="200">
@@ -46,8 +46,10 @@
               />
               <div class="quota-text">已用 ¥{{ Number(row.used_quota || 0).toFixed(2) }} / 限额 ¥{{ Number(row.max_quota).toFixed(2) }}</div>
             </template>
-            <el-tag type="info" size="small">不限额度</el-tag>
-            <div class="quota-text">已用 ¥{{ Number(row.used_quota || 0).toFixed(2) }}</div>
+            <template v-else>
+              <el-tag type="info" size="small">不限额度</el-tag>
+              <div class="quota-text">已用 ¥{{ Number(row.used_quota || 0).toFixed(2) }}</div>
+            </template>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="90" align="center" >

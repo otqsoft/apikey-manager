@@ -121,19 +121,21 @@ type MeModel struct {
 	SupportMultimodal bool   `json:"support_multimodal"`
 }
 
-// MeKeyItem 普通用户 GET /api/me/keys 返回项
+// MeKeyItem 普通用户 GET /api/me/keys 返回项（全量返回已分配密钥，不可用项前端置灰）
 type MeKeyItem struct {
-	ID          uint        `json:"id"`
-	Name        string      `json:"name"`
-	ProviderID  uint        `json:"provider_id"`
-	KeyMasked   string      `json:"key_masked"`
-	ExpireDate  string      `json:"expire_date"`
-	MaxQuota    float64     `json:"max_quota"`
-	UsedQuota   float64     `json:"used_quota"`
-	Status      int         `json:"status"`
-	Remark      string      `json:"remark"`
-	Provider    MeProvider  `json:"provider"`
-	Models      []MeModel   `json:"models"`
+	ID             uint       `json:"id"`
+	Name           string     `json:"name"`
+	ProviderID     uint       `json:"provider_id"`
+	KeyMasked      string     `json:"key_masked"`
+	ExpireDate     string     `json:"expire_date"`
+	MaxQuota       float64    `json:"max_quota"`
+	UsedQuota      float64    `json:"used_quota"`
+	Status         int        `json:"status"`
+	Remark         string     `json:"remark"`
+	Provider       MeProvider `json:"provider"`
+	Models         []MeModel  `json:"models"`
+	Usable         bool       `json:"usable"`
+	UnusableReason string     `json:"unusable_reason"`
 }
 
 // ===================== 用户管理 =====================

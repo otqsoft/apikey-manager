@@ -264,7 +264,7 @@ func (s *keyService) AssignUsers(ctx context.Context, id uint, userIDs []uint) e
 	return tx.Commit()
 }
 
-// MeList 普通用户核心接口：已分配 + 可用性全部满足的密钥，附带供应商与启用模型
+// MeList 普通用户核心接口：全量返回已分配密钥，附带可用性标记（不可用项前端置灰并展示原因）
 func (s *keyService) MeList(ctx context.Context, userID uint) ([]model.MeKeyItem, error) {
 	records, err := g.DB().Model("key_user ku").
 		LeftJoin("api_keys k", "k.id = ku.key_id").
@@ -293,15 +293,14 @@ func (s *keyService) MeList(ctx context.Context, userID uint) ([]model.MeKeyItem
 			Name:      r["provider_name"].String(),
 			ApiFormat: r["api_format"].String(),
 			BaseURL:   r["base_url"].String(),
-			Status:    r["status"].Int(), // providers.status 在 join 后被 k.status 覆盖风险，故下面单独校验
+			Status:    r["status"].Int(), // join 后同名字段歧义，下面单独覆盖
 		}
 		// 单独取供应商启用状态，避免同名字段冲突
 		pStatus, err := g.DB().Model("providers").Where("id", p.ID).Value("status")
-		if err != nil || pStatus.Int() != 1 {
-			continue
-		}
-		if !keyUsable(k, p) {
-			continue
+		if err != nil || pStatus == nil {
+			p.Status = 0
+		} else {
+			p.Status = pStatus.Int()
 		}
 		item := model.MeKeyItem{
 			ID:         k.ID,
@@ -315,6 +314,15 @@ func (s *keyService) MeList(ctx context.Context, userID uint) ([]model.MeKeyItem
 			Remark:     k.Remark,
 			Provider:   model.MeProvider{ID: p.ID, Name: p.Name, ApiFormat: p.ApiFormat, BaseURL: p.BaseURL},
 			Models:     []model.MeModel{},
+			Usable:     true,
+		}
+		// 可用性判定：不可用项不再静默过滤，返回标记与原因供前端置灰提示
+		if p.ID == 0 {
+			item.Usable = false
+			item.UnusableReason = "所属供应商已删除"
+		} else if uerr := validateUsable(k, p); uerr != nil {
+			item.Usable = false
+			item.UnusableReason = uerr.Error()
 		}
 		// 该供应商下启用模型列表
 		modelRecords, err := g.DB().Model("models").
@@ -376,11 +384,6 @@ func validateUsable(k model.ApiKey, p model.Provider) error {
 		return errs.BadRequest("密钥额度已用完（已用额度 " + formatFloat(k.UsedQuota) + " 元 / 限额 " + formatFloat(k.MaxQuota) + " 元）")
 	}
 	return nil
-}
-
-// keyUsable 布尔版校验，用于 MeList 静默过滤
-func keyUsable(k model.ApiKey, p model.Provider) bool {
-	return validateUsable(k, p) == nil
 }
 
 func formatFloat(v float64) string {

@@ -219,7 +219,7 @@ const form = reactive<ModelForm & { id?: number }>({
   input_price_cached: 0,
   input_price: 0,
   output_price: 0,
-  context_length: 0,
+  context_length: 1024000,
   support_thinking: false,
   support_multimodal: false,
   status: 1,
@@ -233,7 +233,7 @@ const rules: FormRules = {
 
 /** 上下文长度实时预览：原始 Token 数 → 百万 Token（M） */
 const contextPreview = computed(() => {
-  const n = Number(form.context_length || 0)
+  const n = Number(form.context_length || 1024000)
   if (n <= 0) return '未设置'
   if (n >= 1e6) return `= ${(n / 1e6).toFixed(2).replace(/\.?0+$/, '')} M Token`
   if (n >= 1e3) return `= ${(n / 1e3).toFixed(1).replace(/\.0$/, '')} K Token`
@@ -252,7 +252,7 @@ function openEdit(row: Row) {
     input_price_cached: row.input_price_cached || 0,
     input_price: row.input_price || 0,
     output_price: row.output_price || 0,
-    context_length: row.context_length || 0,
+    context_length: row.context_length || 1024000,
     support_thinking: !!row.support_thinking,
     support_multimodal: !!row.support_multimodal,
     status: row.status,
@@ -290,7 +290,7 @@ function resetForm() {
     input_price_cached: 0,
     input_price: 0,
     output_price: 0,
-    context_length: 0,
+    context_length: 1024000,
     support_thinking: false,
     support_multimodal: false,
     status: 1,

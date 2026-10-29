@@ -34,12 +34,20 @@
           :disabled="streaming"
           @change="onKeyChange"
         >
-          <el-option
-            v-for="k in myKeys"
-            :key="k.id"
-            :label="`${k.name}（${k.provider.name}）`"
-            :value="k.id"
-          />
+          <el-option-group v-for="g in groupedKeys" :key="g.name" :label="g.name">
+            <el-option
+              v-for="k in g.keys"
+              :key="k.id"
+              :label="`${k.name}（${k.provider.name}）`"
+              :value="k.id"
+              :disabled="k.usable === false"
+            >
+              <div class="key-option">
+                <span class="key-option-name">{{ k.name }}（{{ k.provider.name }}）</span>
+                <span v-if="k.usable === false" class="key-option-reason">{{ k.unusable_reason || '不可用' }}</span>
+              </div>
+            </el-option>
+          </el-option-group>
         </el-select>
         <el-select v-model="selectedModel" placeholder="选择模型" class="model-select" :disabled="streaming">
           <el-option v-for="m in modelOptions" :key="m.id" :label="m.name" :value="m.name" />
@@ -143,12 +151,27 @@ const selectedModel = ref('')
 
 const modelOptions = computed(() => myKeys.value.find((k) => k.id === selectedKeyId.value)?.models || [])
 
+/** Key 下拉树形分组：一级供应商，二级该供应商下的 Key 列表 */
+const groupedKeys = computed(() => {
+  const map = new Map<string, { name: string; keys: MyKeyItem[] }>()
+  for (const k of myKeys.value) {
+    const name = k.provider?.name || '未知供应商'
+    if (!map.has(name)) map.set(name, { name, keys: [] })
+    map.get(name)!.keys.push(k)
+  }
+  return [...map.values()]
+})
+
 async function loadMyKeys() {
   const res = await getMyKeys()
   myKeys.value = res || []
-  if (myKeys.value.length && !selectedKeyId.value) {
-    selectedKeyId.value = myKeys.value[0].id
-    onKeyChange(selectedKeyId.value)
+  // 默认选中第一个可用 Key（不可用项置灰不可选）
+  if (!selectedKeyId.value) {
+    const firstUsable = myKeys.value.find((k) => k.usable !== false)
+    if (firstUsable) {
+      selectedKeyId.value = firstUsable.id
+      onKeyChange(firstUsable.id)
+    }
   }
 }
 
@@ -348,8 +371,8 @@ onMounted(async () => {
 }
 .session-panel {
   width: 260px;
-  border-right: 1px solid #e8eef6;
-  background: #f7f9fc;
+  border-right: 1px solid #fff;
+  background: #fff;
   display: flex;
   flex-direction: column;
 }
@@ -423,6 +446,24 @@ onMounted(async () => {
 }
 .key-select {
   width: 260px;
+}
+/* Key 下拉项：名称 + 不可用原因 */
+.key-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.key-option-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.key-option-reason {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #f56c6c;
 }
 .model-select {
   width: 200px;

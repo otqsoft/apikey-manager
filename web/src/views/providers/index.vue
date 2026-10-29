@@ -24,7 +24,18 @@
     <el-card shadow="never">
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无供应商数据，点击右上角「新增供应商」录入">
         <el-table-column prop="id" label="ID" width="60" fixed="left" />
-        <el-table-column prop="name" label="供应商名称" min-width="140" show-overflow-tooltip fixed="left" />
+        <el-table-column prop="name" label="供应商名称" min-width="140" show-overflow-tooltip fixed="left">
+          <template #default="{ row }">
+            <a
+              v-if="row.platform_url"
+              :href="row.platform_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="name-link"
+            >{{ row.name }}</a>
+            <span v-else>{{ row.name }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="协议格式" width="120">
           <template #default="{ row }">
             <el-tag :type="row.api_format === 'openai' ? 'primary' : 'warning'">{{ row.api_format }}</el-tag>
@@ -301,6 +312,15 @@ async function onDelete(row: Row) {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+/* 供应商名称超链接：打开平台网址 */
+.name-link {
+  color: #2563eb;
+  text-decoration: none;
+  cursor: pointer;
+}
+.name-link:hover {
+  text-decoration: underline;
 }
 /* 文本+复制按钮的单元格：按钮恒可见，文本截断省略 */
 .copy-cell {

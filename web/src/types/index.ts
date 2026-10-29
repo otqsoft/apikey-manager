@@ -190,6 +190,9 @@ export interface MyKeyItem {
   expire_date: string | null
   max_quota: number
   used_quota: number
+  /** 可用性标记；false 时 unusable_reason 说明原因（前端置灰不可选） */
+  usable?: boolean
+  unusable_reason?: string
 }
 
 /** 对话会话 chat_sessions（契约 1.6 / 2.6） */
