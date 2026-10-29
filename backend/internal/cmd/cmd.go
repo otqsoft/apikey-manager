@@ -64,8 +64,30 @@ var Main = gcmd.Command{
 
 				// 普通用户：我的可用密钥
 				auth.GET("/me/keys", controller.Key.MeList)
-				// 密钥详情：admin 全量；被分配用户也可访问完整 key（权限校验在逻辑层）
-				auth.GET("/keys/:id", controller.Key.Detail)
+
+				// 供应商 / 模型 / 密钥管理：admin 全量；普通用户仅自己名下数据
+				// （数据归属过滤与归属校验统一在 logic 层按 owner_id 执行）
+				auth.GET("/providers", controller.Provider.List)
+				auth.POST("/providers", controller.Provider.Create)
+				auth.GET("/providers/:id", controller.Provider.Detail)
+				auth.PUT("/providers/:id", controller.Provider.Update)
+				auth.DELETE("/providers/:id", controller.Provider.Delete)
+				auth.PUT("/providers/:id/status", controller.Provider.SetStatus)
+
+				auth.GET("/models", controller.Model.List)
+				auth.POST("/models", controller.Model.Create)
+				auth.GET("/models/:id", controller.Model.Detail)
+				auth.PUT("/models/:id", controller.Model.Update)
+				auth.DELETE("/models/:id", controller.Model.Delete)
+				auth.PUT("/models/:id/status", controller.Model.SetStatus)
+
+				auth.GET("/keys", controller.Key.List)
+				auth.POST("/keys", controller.Key.Create)
+				auth.PUT("/keys/:id", controller.Key.Update)
+				auth.DELETE("/keys/:id", controller.Key.Delete)
+				auth.PUT("/keys/:id/status", controller.Key.SetStatus)
+				auth.GET("/keys/:id/users", controller.Key.ListUsers)
+				auth.PUT("/keys/:id/users", controller.Key.AssignUsers)
 
 				// 对话（admin / user 均可，数据归属在逻辑层过滤）
 				auth.GET("/chat/sessions", controller.Chat.ListSessions)
@@ -80,37 +102,12 @@ var Main = gcmd.Command{
 				auth.GET("/stats/trend", controller.Stats.Trend)
 				auth.GET("/stats/breakdown", controller.Stats.Breakdown)
 
-				// 仅管理员：管理端 CRUD
+				// 用户列表：登录即可读（「分配用户」弹窗需要选择用户）
+				auth.GET("/users", controller.User.List)
+
+				// 仅管理员：用户管理（增删改、启停、重置密码、查看分配）
 				auth.Group("/", func(admin *ghttp.RouterGroup) {
 					admin.Middleware(middleware.RequireAdmin)
-
-					// 供应商
-					admin.GET("/providers", controller.Provider.List)
-					admin.POST("/providers", controller.Provider.Create)
-					admin.GET("/providers/:id", controller.Provider.Detail)
-					admin.PUT("/providers/:id", controller.Provider.Update)
-					admin.DELETE("/providers/:id", controller.Provider.Delete)
-					admin.PUT("/providers/:id/status", controller.Provider.SetStatus)
-
-					// 模型
-					admin.GET("/models", controller.Model.List)
-					admin.POST("/models", controller.Model.Create)
-					admin.GET("/models/:id", controller.Model.Detail)
-					admin.PUT("/models/:id", controller.Model.Update)
-					admin.DELETE("/models/:id", controller.Model.Delete)
-					admin.PUT("/models/:id/status", controller.Model.SetStatus)
-
-					// 密钥（详情接口已挂在登录组，支持被分配用户访问）
-					admin.GET("/keys", controller.Key.List)
-					admin.POST("/keys", controller.Key.Create)
-					admin.PUT("/keys/:id", controller.Key.Update)
-					admin.DELETE("/keys/:id", controller.Key.Delete)
-					admin.PUT("/keys/:id/status", controller.Key.SetStatus)
-					admin.GET("/keys/:id/users", controller.Key.ListUsers)
-					admin.PUT("/keys/:id/users", controller.Key.AssignUsers)
-
-					// 用户管理
-					admin.GET("/users", controller.User.List)
 					admin.POST("/users", controller.User.Create)
 					admin.GET("/users/:id", controller.User.Detail)
 					admin.PUT("/users/:id", controller.User.Update)

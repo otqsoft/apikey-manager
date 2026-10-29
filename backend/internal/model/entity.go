@@ -4,6 +4,7 @@ package model
 // Provider 供应商（providers 表）
 type Provider struct {
 	ID             uint    `orm:"id"              json:"id"`
+	OwnerID        uint    `orm:"owner_id"        json:"owner_id"`         // 归属用户：创建者；admin 可见全部
 	Name           string  `orm:"name"            json:"name"`
 	ApiFormat      string  `orm:"api_format"      json:"api_format"`       // openai / anthropic
 	BaseURL        string  `orm:"base_url"        json:"base_url"`         // OpenAI 格式已含 /v1；Anthropic 不含
@@ -20,6 +21,7 @@ type Provider struct {
 // Model 模型（models 表）
 type Model struct {
 	ID                 uint   `orm:"id"                   json:"id"`
+	OwnerID            uint   `orm:"owner_id"             json:"owner_id"`    // 归属用户：创建者
 	Name               string `orm:"name"                 json:"name"`
 	ProviderID         uint   `orm:"provider_id"          json:"provider_id"`
 	InputPriceCached   float64 `orm:"input_price_cached"  json:"input_price_cached"` // 缓存命中输入价（元/百万 token）
@@ -38,6 +40,7 @@ type Model struct {
 // ApiKey 密钥（api_keys 表）
 type ApiKey struct {
 	ID          uint    `orm:"id"          json:"id"`
+	OwnerID     uint    `orm:"owner_id"    json:"owner_id"`     // 归属用户：创建者；owner 或被分配者可用
 	Name        string  `orm:"name"        json:"name"`
 	ProviderID  uint    `orm:"provider_id" json:"provider_id"`
 	APIKey      string  `orm:"api_key"     json:"api_key"`       // 完整 key：仅详情/转发使用，列表必须掩码

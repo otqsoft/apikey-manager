@@ -82,12 +82,12 @@ interface MenuItem {
   roles: string[]
 }
 
-/** 契约第 4 节菜单：admin 全量；user 仅仪表盘 + 对话测试 */
+/** 菜单：admin 全量 + 全局数据；user 除用户管理外均可（数据范围限自己名下） */
 const allMenus: MenuItem[] = [
   { path: '/dashboard', title: '仪表盘', icon: 'Odometer', roles: ['admin', 'user'] },
-  { path: '/providers', title: '供应商管理', icon: 'Connection', roles: ['admin'] },
-  { path: '/models', title: '模型管理', icon: 'Files', roles: ['admin'] },
-  { path: '/keys', title: 'API-KEY 管理', icon: 'Key', roles: ['admin'] },
+  { path: '/providers', title: '供应商管理', icon: 'Connection', roles: ['admin', 'user'] },
+  { path: '/models', title: '模型管理', icon: 'Files', roles: ['admin', 'user'] },
+  { path: '/keys', title: 'API-KEY 管理', icon: 'Key', roles: ['admin', 'user'] },
   { path: '/users', title: '用户管理', icon: 'User', roles: ['admin'] },
   { path: '/chat', title: '对话测试', icon: 'ChatDotRound', roles: ['admin', 'user'] }
 ]

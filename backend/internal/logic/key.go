@@ -20,16 +20,16 @@ func init() {
 
 type keyService struct{}
 
-// List admin 全量分页列表；api_key 掩码回显，附带 used_quota/max_quota
-func (s *keyService) List(ctx context.Context, page, size int, providerID uint, keyword string) (*model.PageResult, error) {
+// List 密钥分页列表；admin 全量，普通用户仅自己名下；api_key 掩码回显
+func (s *keyService) List(ctx context.Context, userID uint, isAdmin bool, page, size int, providerID uint, keyword string) (*model.PageResult, error) {
 	if page <= 0 {
 		page = 1
 	}
 	if size <= 0 {
 		size = 10
 	}
-	m := g.DB().Model("api_keys k").
-		LeftJoin("providers p", "p.id = k.provider_id")
+	m := applyOwnerScope(g.DB().Model("api_keys k").
+		LeftJoin("providers p", "p.id = k.provider_id"), userID, isAdmin, "k.owner_id")
 	if providerID > 0 {
 		m = m.Where("k.provider_id", providerID)
 	}
@@ -57,7 +57,7 @@ func (s *keyService) List(ctx context.Context, page, size int, providerID uint, 
 	return &model.PageResult{List: safeList(records), Total: total, Page: page, PageSize: size}, nil
 }
 
-// Detail 详情返回完整 api_key；admin 全量，普通用户仅限被分配者
+// Detail 详情返回完整 api_key；admin 全量，普通用户限 owner 或被分配者
 func (s *keyService) Detail(ctx context.Context, id, userID uint, isAdmin bool) (*model.ApiKey, error) {
 	var k model.ApiKey
 	if err := g.DB().Model("api_keys").Where("id", id).Scan(&k); err != nil {
@@ -66,7 +66,7 @@ func (s *keyService) Detail(ctx context.Context, id, userID uint, isAdmin bool) 
 	if k.ID == 0 {
 		return nil, errs.NotFound("密钥不存在")
 	}
-	if !isAdmin {
+	if !isAdmin && k.OwnerID != userID {
 		cnt, err := g.DB().Model("key_user").Where("key_id", id).Where("user_id", userID).Count()
 		if err != nil {
 			return nil, err
@@ -78,17 +78,14 @@ func (s *keyService) Detail(ctx context.Context, id, userID uint, isAdmin bool) 
 	return &k, nil
 }
 
-// Create 新建密钥：事务内先写 api_keys，再幂等写 key_user（创建者自动可见于 /me/keys）
-func (s *keyService) Create(ctx context.Context, creatorID uint, req *model.KeySaveReq) (uint, error) {
+// Create 新建密钥：归属当前用户；非 admin 校验供应商归属；
+// 同一事务内幂等写 key_user（创建者自动可见于 /me/keys）
+func (s *keyService) Create(ctx context.Context, creatorID uint, isAdmin bool, req *model.KeySaveReq) (uint, error) {
 	if req.APIKey == "" {
 		return 0, errs.BadRequest("api_key 不能为空")
 	}
-	cnt, err := g.DB().Model("providers").Where("id", req.ProviderID).Count()
-	if err != nil {
+	if err := assertProviderOwned(ctx, req.ProviderID, creatorID, isAdmin); err != nil {
 		return 0, err
-	}
-	if cnt == 0 {
-		return 0, errs.BadRequest("所属供应商不存在")
 	}
 	status := req.Status
 	if status != 0 && status != 1 {
@@ -103,6 +100,7 @@ func (s *keyService) Create(ctx context.Context, creatorID uint, req *model.KeyS
 
 	id, err := tx.Model("api_keys").InsertAndGetId(g.Map{
 		"name":        req.Name,
+		"owner_id":    creatorID,
 		"provider_id": req.ProviderID,
 		"api_key":     req.APIKey,
 		"expire_date": req.ExpireDate,
@@ -139,21 +137,17 @@ func (s *keyService) Create(ctx context.Context, creatorID uint, req *model.KeyS
 	return newID, nil
 }
 
-// Update 更新密钥；api_key 留空表示不修改明文
-func (s *keyService) Update(ctx context.Context, id uint, req *model.KeySaveReq) error {
-	cnt, err := g.DB().Model("api_keys").Where("id", id).Count()
+// Update 更新密钥（归属校验）；api_key 留空表示不修改明文
+func (s *keyService) Update(ctx context.Context, id, userID uint, isAdmin bool, req *model.KeySaveReq) error {
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("密钥不存在")
 	}
-	cnt, err = g.DB().Model("providers").Where("id", req.ProviderID).Count()
-	if err != nil {
+	if err := assertProviderOwned(ctx, req.ProviderID, userID, isAdmin); err != nil {
 		return err
-	}
-	if cnt == 0 {
-		return errs.BadRequest("所属供应商不存在")
 	}
 	data := g.Map{
 		"name":        req.Name,
@@ -170,13 +164,13 @@ func (s *keyService) Update(ctx context.Context, id uint, req *model.KeySaveReq)
 	return err
 }
 
-// Delete 删除密钥并级联清理分配关系
-func (s *keyService) Delete(ctx context.Context, id uint) error {
-	cnt, err := g.DB().Model("api_keys").Where("id", id).Count()
+// Delete 删除密钥并级联清理分配关系（归属校验）
+func (s *keyService) Delete(ctx context.Context, id, userID uint, isAdmin bool) error {
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("密钥不存在")
 	}
 	tx, err := g.DB().Begin(ctx)
@@ -193,21 +187,28 @@ func (s *keyService) Delete(ctx context.Context, id uint) error {
 	return tx.Commit()
 }
 
-// SetStatus 启停密钥
-func (s *keyService) SetStatus(ctx context.Context, id uint, status int) error {
-	cnt, err := g.DB().Model("api_keys").Where("id", id).Count()
+// SetStatus 启停密钥（归属校验）
+func (s *keyService) SetStatus(ctx context.Context, id, userID uint, isAdmin bool, status int) error {
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("密钥不存在")
 	}
 	_, err = g.DB().Model("api_keys").Where("id", id).Update(g.Map{"status": status})
 	return err
 }
 
-// ListUsers 已分配用户简表 + user_id 数组
-func (s *keyService) ListUsers(ctx context.Context, id uint) ([]map[string]interface{}, error) {
+// ListUsers 已分配用户简表 + user_id 数组（仅 key 的 owner 或 admin 可调用）
+func (s *keyService) ListUsers(ctx context.Context, id, userID uint, isAdmin bool) ([]map[string]interface{}, error) {
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errs.NotFound("密钥不存在")
+	}
 	records, err := g.DB().Model("key_user ku").
 		LeftJoin("users u", "u.id = ku.user_id").
 		Fields("u.id as user_id, u.username, u.display_name, u.role, u.status").
@@ -230,13 +231,13 @@ func (s *keyService) ListUsers(ctx context.Context, id uint) ([]map[string]inter
 	}, nil
 }
 
-// AssignUsers 全量覆盖分配关系（去重后替换）
-func (s *keyService) AssignUsers(ctx context.Context, id uint, userIDs []uint) error {
-	cnt, err := g.DB().Model("api_keys").Where("id", id).Count()
+// AssignUsers 全量覆盖分配关系（去重后替换）；仅 key 的 owner 或 admin 可操作
+func (s *keyService) AssignUsers(ctx context.Context, id, userID uint, isAdmin bool, userIDs []uint) error {
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("密钥不存在")
 	}
 	tx, err := g.DB().Begin(ctx)
@@ -264,13 +265,14 @@ func (s *keyService) AssignUsers(ctx context.Context, id uint, userIDs []uint) e
 	return tx.Commit()
 }
 
-// MeList 普通用户核心接口：全量返回已分配密钥，附带可用性标记（不可用项前端置灰并展示原因）
+// MeList 普通用户核心接口：我名下（owner）或被分配（key_user）的密钥全量返回，
+// 附带可用性标记（不可用项前端置灰并展示原因）
 func (s *keyService) MeList(ctx context.Context, userID uint) ([]model.MeKeyItem, error) {
-	records, err := g.DB().Model("key_user ku").
-		LeftJoin("api_keys k", "k.id = ku.key_id").
+	records, err := g.DB().Model("api_keys k").
 		LeftJoin("providers p", "p.id = k.provider_id").
 		Fields("k.*, p.name as provider_name, p.api_format, p.base_url").
-		Where("ku.user_id", userID).
+		Where("(k.owner_id = ? OR EXISTS (SELECT 1 FROM key_user ku WHERE ku.key_id = k.id AND ku.user_id = ?))", userID, userID).
+		OrderDesc("k.id").
 		All()
 	if err != nil {
 		return nil, err

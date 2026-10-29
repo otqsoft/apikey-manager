@@ -52,7 +52,10 @@ func (s *statsService) adminOverview(ctx context.Context) (map[string]interface{
 }
 
 func (s *statsService) userOverview(ctx context.Context, userID uint) (map[string]interface{}, error) {
-	myKeyCount, _ := g.DB().Model("key_user").Where("user_id", userID).Count()
+	// 我的可用密钥：名下（owner）或被分配（key_user）
+	myKeyCount, _ := g.DB().Model("api_keys").
+		Where("(owner_id = ? OR EXISTS (SELECT 1 FROM key_user ku WHERE ku.key_id = api_keys.id AND ku.user_id = ?))", userID, userID).
+		Count()
 	mySessionCount, _ := g.DB().Model("chat_sessions").Where("user_id", userID).Count()
 
 	msgModel := func() *gdb.Model {

@@ -62,6 +62,7 @@ func seedSamples(ctx context.Context) error {
 
 	// 示例供应商 1：OpenAI 兼容格式
 	pid1, err := g.DB().Model("providers").InsertAndGetId(g.Map{
+		"owner_id":  1,
 		"name":            "示例·OpenAI 兼容平台",
 		"api_format":      "openai",
 		"base_url":       "https://api.openai.com/v1",
@@ -77,6 +78,7 @@ func seedSamples(ctx context.Context) error {
 	}
 	// 示例供应商 2：Anthropic 格式
 	pid2, err := g.DB().Model("providers").InsertAndGetId(g.Map{
+		"owner_id":  1,
 		"name":            "示例·Anthropic Claude 平台",
 		"api_format":      "anthropic",
 		"base_url":       "https://api.anthropic.com",
@@ -92,6 +94,7 @@ func seedSamples(ctx context.Context) error {
 	}
 	// 示例模型 1
 	if _, err := g.DB().Model("models").Insert(g.Map{
+		"owner_id": 1,
 		"name":               "gpt-4o",
 		"provider_id":        pid1,
 		"input_price_cached": 2.5,
@@ -107,6 +110,7 @@ func seedSamples(ctx context.Context) error {
 	}
 	// 示例模型 2
 	if _, err := g.DB().Model("models").Insert(g.Map{
+		"owner_id": 1,
 		"name":               "claude-3-5-sonnet",
 		"provider_id":        pid2,
 		"input_price_cached": 1.5,
@@ -122,6 +126,7 @@ func seedSamples(ctx context.Context) error {
 	}
 	// 示例密钥（掩码占位值，不可真实调用）
 	if _, err := g.DB().Model("api_keys").Insert(g.Map{
+		"owner_id": 1,
 		"name":        "示例密钥-1（掩码占位）",
 		"provider_id": pid1,
 		"api_key":     "sk-example-xxxx000011112222",

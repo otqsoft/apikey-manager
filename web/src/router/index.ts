@@ -30,19 +30,19 @@ const routes: RouteRecordRaw[] = [
         path: 'providers',
         name: 'Providers',
         component: () => import('@/views/providers/index.vue'),
-        meta: { title: '供应商管理', roles: ['admin'] }
+        meta: { title: '供应商管理', roles: ['admin', 'user'] }
       },
       {
         path: 'models',
         name: 'Models',
         component: () => import('@/views/models/index.vue'),
-        meta: { title: '模型管理', roles: ['admin'] }
+        meta: { title: '模型管理', roles: ['admin', 'user'] }
       },
       {
         path: 'keys',
         name: 'Keys',
         component: () => import('@/views/keys/index.vue'),
-        meta: { title: 'API-KEY 管理', roles: ['admin'] }
+        meta: { title: 'API-KEY 管理', roles: ['admin', 'user'] }
       },
       {
         path: 'users',

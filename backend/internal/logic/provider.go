@@ -16,15 +16,15 @@ func init() {
 
 type providerService struct{}
 
-// List 供应商分页列表；status=-1 表示不按状态过滤
-func (s *providerService) List(ctx context.Context, page, size int, keyword string, status int) (*model.PageResult, error) {
+// List 供应商分页列表；admin 全量，普通用户仅自己名下；status=-1 表示不按状态过滤
+func (s *providerService) List(ctx context.Context, userID uint, isAdmin bool, page, size int, keyword string, status int) (*model.PageResult, error) {
 	if page <= 0 {
 		page = 1
 	}
 	if size <= 0 {
 		size = 10
 	}
-	m := g.DB().Model("providers")
+	m := applyOwnerScope(g.DB().Model("providers"), userID, isAdmin, "owner_id")
 	if keyword != "" {
 		m = m.WhereLike("name", "%"+keyword+"%")
 	}
@@ -42,8 +42,8 @@ func (s *providerService) List(ctx context.Context, page, size int, keyword stri
 	return &model.PageResult{List: safeList(records), Total: total, Page: page, PageSize: size}, nil
 }
 
-// Detail 供应商详情
-func (s *providerService) Detail(ctx context.Context, id uint) (*model.Provider, error) {
+// Detail 供应商详情（归属校验）
+func (s *providerService) Detail(ctx context.Context, id, userID uint, isAdmin bool) (*model.Provider, error) {
 	var p model.Provider
 	if err := g.DB().Model("providers").Where("id", id).Scan(&p); err != nil {
 		return nil, scanErr(err, "供应商不存在")
@@ -51,11 +51,14 @@ func (s *providerService) Detail(ctx context.Context, id uint) (*model.Provider,
 	if p.ID == 0 {
 		return nil, errs.NotFound("供应商不存在")
 	}
+	if !isAdmin && p.OwnerID != userID {
+		return nil, errs.Forbidden("无权查看该供应商")
+	}
 	return &p, nil
 }
 
-// Create 新建供应商，补默认值并校验名称唯一
-func (s *providerService) Create(ctx context.Context, req *model.ProviderSaveReq) (uint, error) {
+// Create 新建供应商：归属当前用户，补默认值并校验名称唯一
+func (s *providerService) Create(ctx context.Context, ownerID uint, req *model.ProviderSaveReq) (uint, error) {
 	if req.ApiFormat != "openai" && req.ApiFormat != "anthropic" {
 		return 0, errs.BadRequest("api_format 仅支持 openai / anthropic")
 	}
@@ -67,23 +70,24 @@ func (s *providerService) Create(ctx context.Context, req *model.ProviderSaveReq
 		return 0, errs.BadRequest("供应商名称已存在")
 	}
 	data := s.applyDefaults(req)
+	data["owner_id"] = ownerID
 	id, err := g.DB().Model("providers").InsertAndGetId(data)
 	return uint(id), err
 }
 
-// Update 更新供应商
-func (s *providerService) Update(ctx context.Context, id uint, req *model.ProviderSaveReq) error {
-	cnt, err := g.DB().Model("providers").Where("id", id).Count()
+// Update 更新供应商（归属校验）
+func (s *providerService) Update(ctx context.Context, id, userID uint, isAdmin bool, req *model.ProviderSaveReq) error {
+	exists, err := assertResourceOwned(ctx, "providers", id, userID, isAdmin, "供应商")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("供应商不存在")
 	}
 	if req.ApiFormat != "openai" && req.ApiFormat != "anthropic" {
 		return errs.BadRequest("api_format 仅支持 openai / anthropic")
 	}
-	cnt, err = g.DB().Model("providers").Where("name", req.Name).WhereNot("id", id).Count()
+	cnt, err := g.DB().Model("providers").Where("name", req.Name).WhereNot("id", id).Count()
 	if err != nil {
 		return err
 	}
@@ -94,13 +98,13 @@ func (s *providerService) Update(ctx context.Context, id uint, req *model.Provid
 	return err
 }
 
-// Delete 删除前校验：名下存在模型或密钥则拒绝
-func (s *providerService) Delete(ctx context.Context, id uint) error {
-	cnt, err := g.DB().Model("providers").Where("id", id).Count()
+// Delete 删除前校验：名下存在模型或密钥则拒绝（归属校验）
+func (s *providerService) Delete(ctx context.Context, id, userID uint, isAdmin bool) error {
+	exists, err := assertResourceOwned(ctx, "providers", id, userID, isAdmin, "供应商")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("供应商不存在")
 	}
 	modelCnt, err := g.DB().Model("models").Where("provider_id", id).Count()
@@ -121,13 +125,13 @@ func (s *providerService) Delete(ctx context.Context, id uint) error {
 	return err
 }
 
-// SetStatus 启停供应商
-func (s *providerService) SetStatus(ctx context.Context, id uint, status int) error {
-	cnt, err := g.DB().Model("providers").Where("id", id).Count()
+// SetStatus 启停供应商（归属校验）
+func (s *providerService) SetStatus(ctx context.Context, id, userID uint, isAdmin bool, status int) error {
+	exists, err := assertResourceOwned(ctx, "providers", id, userID, isAdmin, "供应商")
 	if err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if !exists {
 		return errs.NotFound("供应商不存在")
 	}
 	_, err = g.DB().Model("providers").Where("id", id).Update(g.Map{"status": status})
@@ -151,7 +155,7 @@ func (s *providerService) applyDefaults(req *model.ProviderSaveReq) g.Map {
 	return g.Map{
 		"name":            req.Name,
 		"api_format":      req.ApiFormat,
-		"base_url":       req.BaseURL,
+		"base_url":        req.BaseURL,
 		"platform_url":    req.PlatformURL,
 		"balance":         req.Balance,
 		"max_concurrency": maxConcurrency,

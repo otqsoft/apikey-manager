@@ -36,8 +36,67 @@ func CreateTables(ctx context.Context) error {
 	if err := migrateChatMessagesReasoning(ctx); err != nil {
 		return err
 	}
+	// 权限体系迁移：providers/models/api_keys 补 owner_id 归属列，存量数据归入内置管理员
+	if err := migrateOwnerColumns(ctx); err != nil {
+		return err
+	}
 	g.Log().Info(ctx, "数据库表结构初始化完成")
 	return nil
+}
+
+// migrateOwnerColumns 幂等补列：providers/models/api_keys 缺少 owner_id 时执行
+// ALTER ADD COLUMN，并把存量行（owner_id=0）回填为 1（内置管理员），保证老数据仍可见。
+func migrateOwnerColumns(ctx context.Context) error {
+	tables := []string{"providers", "models", "api_keys"}
+	for _, table := range tables {
+		exists, err := columnExists(ctx, table, "owner_id")
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		var alterSQL string
+		if driverName(ctx) == "mysql" {
+			alterSQL = "ALTER TABLE " + table + " ADD COLUMN owner_id BIGINT UNSIGNED NOT NULL DEFAULT 0"
+		} else {
+			alterSQL = "ALTER TABLE " + table + " ADD COLUMN owner_id INTEGER NOT NULL DEFAULT 0"
+		}
+		if _, err := g.DB().Exec(ctx, alterSQL); err != nil {
+			g.Log().Errorf(ctx, "补 owner_id 列失败: %s, err=%v", alterSQL, err)
+			return err
+		}
+		if _, err := g.DB().Exec(ctx, "UPDATE "+table+" SET owner_id = 1 WHERE owner_id = 0"); err != nil {
+			return err
+		}
+		g.Log().Infof(ctx, "已为 %s 补充 owner_id 列，存量数据归入内置管理员", table)
+	}
+	return nil
+}
+
+// columnExists 探测某表某列是否存在：MySQL 查 information_schema；SQLite 用 PRAGMA table_info
+func columnExists(ctx context.Context, table, column string) (bool, error) {
+	if driverName(ctx) == "mysql" {
+		cnt, err := g.DB().Model("information_schema.columns").
+			Where("table_schema = DATABASE()").
+			Where("table_name", table).
+			Where("column_name", column).
+			Count()
+		if err != nil {
+			return false, err
+		}
+		return cnt > 0, nil
+	}
+	records, err := g.DB().GetAll(ctx, "PRAGMA table_info("+table+")")
+	if err != nil {
+		return false, err
+	}
+	for _, r := range records {
+		if r["name"].String() == column {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // migrateChatMessagesReasoning 幂等补列：仅当 chat_messages 缺少 reasoning_content 时执行 ALTER ADD COLUMN，
@@ -93,6 +152,7 @@ var ddlMap = map[string][]string{
 	"sqlite": {
 		`CREATE TABLE IF NOT EXISTS providers (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			owner_id INTEGER NOT NULL DEFAULT 0,
 			name TEXT NOT NULL UNIQUE,
 			api_format TEXT NOT NULL DEFAULT 'openai',
 			base_url TEXT NOT NULL,
@@ -121,6 +181,7 @@ var ddlMap = map[string][]string{
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_models_provider ON models(provider_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_models_owner ON models(owner_id)`,
 		`CREATE TABLE IF NOT EXISTS api_keys (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
@@ -135,6 +196,7 @@ var ddlMap = map[string][]string{
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_keys_provider ON api_keys(provider_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_keys_owner ON api_keys(owner_id)`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT NOT NULL UNIQUE,
@@ -162,6 +224,7 @@ var ddlMap = map[string][]string{
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_user ON chat_sessions(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_providers_owner ON providers(owner_id)`,
 		`CREATE TABLE IF NOT EXISTS chat_messages (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			session_id INTEGER NOT NULL,
@@ -180,6 +243,7 @@ var ddlMap = map[string][]string{
 	"mysql": {
 		`CREATE TABLE IF NOT EXISTS providers (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			owner_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			name VARCHAR(128) NOT NULL UNIQUE,
 			api_format VARCHAR(16) NOT NULL DEFAULT 'openai',
 			base_url VARCHAR(512) NOT NULL,
@@ -190,10 +254,12 @@ var ddlMap = map[string][]string{
 			status TINYINT NOT NULL DEFAULT 1,
 			remark VARCHAR(1024) DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			KEY idx_providers_owner (owner_id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 		`CREATE TABLE IF NOT EXISTS models (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			owner_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			name VARCHAR(128) NOT NULL,
 			provider_id BIGINT UNSIGNED NOT NULL,
 			input_price_cached DOUBLE NOT NULL DEFAULT 0,
@@ -206,10 +272,12 @@ var ddlMap = map[string][]string{
 			remark VARCHAR(1024) DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			KEY idx_models_provider (provider_id)
+			KEY idx_models_provider (provider_id),
+			KEY idx_models_owner (owner_id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 		`CREATE TABLE IF NOT EXISTS api_keys (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			owner_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			name VARCHAR(128) NOT NULL,
 			provider_id BIGINT UNSIGNED NOT NULL,
 			api_key TEXT NOT NULL,
@@ -220,7 +288,8 @@ var ddlMap = map[string][]string{
 			remark VARCHAR(1024) DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			KEY idx_keys_provider (provider_id)
+			KEY idx_keys_provider (provider_id),
+			KEY idx_keys_owner (owner_id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

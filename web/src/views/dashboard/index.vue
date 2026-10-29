@@ -131,7 +131,6 @@ async function loadOverview() {
 }
 
 const statCards = computed(() => {
-  if (store.isAdmin) {
     return [
       { key: 'provider', label: '供应商数', value: formatInt(adminData.value.provider_count), icon: 'Connection', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
       { key: 'model', label: '模型数', value: formatInt(adminData.value.model_count), icon: 'Files', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' },
@@ -141,14 +140,6 @@ const statCards = computed(() => {
       { key: 'todayCost', label: '今日费用', value: formatMoney(adminData.value.today_cost), icon: 'Money', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
       { key: 'totalCost', label: '累计费用', value: formatMoneyCompact(adminData.value.total_cost), icon: 'Wallet', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' }
     ]
-  }
-  return [
-    { key: 'myKey', label: '我的可用 Key', value: formatInt(userData.value.my_key_count), icon: 'Key', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
-    { key: 'session', label: '我的会话数', value: formatInt(userData.value.my_session_count), icon: 'ChatDotRound', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' },
-    { key: 'todayTokens', label: '今日 Token', value: formatInt(userData.value.today_tokens), icon: 'DataLine', bg: 'linear-gradient(135deg,#e0f2fe,#f0f9ff)' },
-    { key: 'todayCost', label: '今日费用', value: formatMoney(userData.value.today_cost), icon: 'Money', bg: 'linear-gradient(135deg,#fef3c7,#fffbeb)' },
-    { key: 'totalCost', label: '累计费用', value: formatMoney(userData.value.total_cost), icon: 'Wallet', bg: 'linear-gradient(135deg,#fee2e2,#fef2f2)' }
-  ]
 })
 
 // ---------------- ① Top 榜单（6.1） ----------------

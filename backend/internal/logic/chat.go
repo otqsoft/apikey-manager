@@ -146,15 +146,21 @@ func (s *chatService) Complete(r *ghttp.Request, userID uint, req *model.ChatCom
 	if err != nil {
 		return err
 	}
-	// 2. 数据归属：非 admin 必须是被分配用户
+	// 2. 数据归属：非 admin 需为密钥 owner 或被分配用户
 	isAdmin := middlewareIsAdmin(userID, ctx)
 	if !isAdmin {
-		cnt, err := g.DB().Model("key_user").Where("key_id", k.ID).Where("user_id", userID).Count()
+		owned, err := g.DB().Model("api_keys").Where("id", k.ID).Where("owner_id", userID).Count()
 		if err != nil {
 			return err
 		}
-		if cnt == 0 {
-			return errs.Forbidden("无权使用该密钥")
+		if owned == 0 {
+			cnt, err := g.DB().Model("key_user").Where("key_id", k.ID).Where("user_id", userID).Count()
+			if err != nil {
+				return err
+			}
+			if cnt == 0 {
+				return errs.Forbidden("无权使用该密钥")
+			}
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 
+	"apikey-manager/internal/middleware"
 	"apikey-manager/internal/model"
 	"apikey-manager/internal/pkg/response"
 	"apikey-manager/internal/service"
@@ -18,7 +19,7 @@ type providerController struct{}
 func (providerController) List(r *ghttp.Request) {
 	page, size := pageParams(r)
 	keyword := r.GetQuery("keyword").String()
-	data, err := service.Provider.List(r.Context(), page, size, keyword, optionalStatus(r))
+	data, err := service.Provider.List(r.Context(), middleware.UserID(r), middleware.IsAdmin(r), page, size, keyword, optionalStatus(r))
 	if err != nil {
 		fail(r, err)
 		return
@@ -33,7 +34,7 @@ func (providerController) Create(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	id, err := service.Provider.Create(r.Context(), &req)
+	id, err := service.Provider.Create(r.Context(), middleware.UserID(r), &req)
 	if err != nil {
 		fail(r, err)
 		return
@@ -43,7 +44,7 @@ func (providerController) Create(r *ghttp.Request) {
 
 // Detail 供应商详情
 func (providerController) Detail(r *ghttp.Request) {
-	data, err := service.Provider.Detail(r.Context(), r.Get("id").Uint())
+	data, err := service.Provider.Detail(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r))
 	if err != nil {
 		fail(r, err)
 		return
@@ -58,7 +59,7 @@ func (providerController) Update(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	if err := service.Provider.Update(r.Context(), r.Get("id").Uint(), &req); err != nil {
+	if err := service.Provider.Update(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r), &req); err != nil {
 		fail(r, err)
 		return
 	}
@@ -67,7 +68,7 @@ func (providerController) Update(r *ghttp.Request) {
 
 // Delete 删除前校验名下模型/密钥
 func (providerController) Delete(r *ghttp.Request) {
-	if err := service.Provider.Delete(r.Context(), r.Get("id").Uint()); err != nil {
+	if err := service.Provider.Delete(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r)); err != nil {
 		fail(r, err)
 		return
 	}
@@ -81,7 +82,7 @@ func (providerController) SetStatus(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	if err := service.Provider.SetStatus(r.Context(), r.Get("id").Uint(), req.Status); err != nil {
+	if err := service.Provider.SetStatus(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r), req.Status); err != nil {
 		fail(r, err)
 		return
 	}

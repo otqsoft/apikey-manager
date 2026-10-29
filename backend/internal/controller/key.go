@@ -20,7 +20,7 @@ func (keyController) List(r *ghttp.Request) {
 	page, size := pageParams(r)
 	providerID := r.GetQuery("provider_id").Uint()
 	keyword := r.GetQuery("keyword").String()
-	data, err := service.Key.List(r.Context(), page, size, providerID, keyword)
+	data, err := service.Key.List(r.Context(), middleware.UserID(r), middleware.IsAdmin(r), page, size, providerID, keyword)
 	if err != nil {
 		fail(r, err)
 		return
@@ -35,7 +35,7 @@ func (keyController) Create(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	id, err := service.Key.Create(r.Context(), middleware.UserID(r), &req)
+	id, err := service.Key.Create(r.Context(), middleware.UserID(r), middleware.IsAdmin(r), &req)
 	if err != nil {
 		fail(r, err)
 		return
@@ -60,7 +60,7 @@ func (keyController) Update(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	if err := service.Key.Update(r.Context(), r.Get("id").Uint(), &req); err != nil {
+	if err := service.Key.Update(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r), &req); err != nil {
 		fail(r, err)
 		return
 	}
@@ -69,7 +69,7 @@ func (keyController) Update(r *ghttp.Request) {
 
 // Delete 删除密钥并级联清理分配
 func (keyController) Delete(r *ghttp.Request) {
-	if err := service.Key.Delete(r.Context(), r.Get("id").Uint()); err != nil {
+	if err := service.Key.Delete(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r)); err != nil {
 		fail(r, err)
 		return
 	}
@@ -83,7 +83,7 @@ func (keyController) SetStatus(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	if err := service.Key.SetStatus(r.Context(), r.Get("id").Uint(), req.Status); err != nil {
+	if err := service.Key.SetStatus(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r), req.Status); err != nil {
 		fail(r, err)
 		return
 	}
@@ -92,7 +92,7 @@ func (keyController) SetStatus(r *ghttp.Request) {
 
 // ListUsers 已分配用户（admin）
 func (keyController) ListUsers(r *ghttp.Request) {
-	data, err := service.Key.ListUsers(r.Context(), r.Get("id").Uint())
+	data, err := service.Key.ListUsers(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r))
 	if err != nil {
 		fail(r, err)
 		return
@@ -112,7 +112,7 @@ func (keyController) AssignUsers(r *ghttp.Request) {
 		response.BadRequest(r, err.Error())
 		return
 	}
-	if err := service.Key.AssignUsers(r.Context(), r.Get("id").Uint(), req.UserIDs); err != nil {
+	if err := service.Key.AssignUsers(r.Context(), r.Get("id").Uint(), middleware.UserID(r), middleware.IsAdmin(r), req.UserIDs); err != nil {
 		fail(r, err)
 		return
 	}
