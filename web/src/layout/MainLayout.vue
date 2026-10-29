@@ -3,7 +3,7 @@
     <el-aside width="220px" class="layout-aside">
       <div class="logo">
         <div class="logo-mark">
-          <el-icon :size="16"><Key /></el-icon>
+          <img src="/logo.png" alt="logo" />
         </div>
         <span class="logo-text">API Key 控制台</span>
       </div>
@@ -135,11 +135,17 @@ async function onCommand(cmd: string) {
   width: 30px;
   height: 30px;
   border-radius: 8px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #3b82f6, #00d4ff);
+  background: none;
+}
+.logo-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .logo-text {
   color: #f1f5f9;
@@ -224,7 +230,7 @@ async function onCommand(cmd: string) {
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #3b82f6, #00d4ff);
+  background: linear-gradient(135deg, #3b82f6, #3b82f6);
 }
 .user-name {
   font-size: 14px;

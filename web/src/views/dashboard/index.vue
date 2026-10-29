@@ -13,7 +13,7 @@
 
     <!-- 统计卡：admin 七项 / user 五项（GET /api/stats/overview） -->
     <el-row :gutter="16">
-      <el-col v-for="card in statCards" :key="card.key" :xs="12" :sm="8" :md="6" :lg="4" :xl="3" class="card-col">
+      <el-col v-for="card in statCards" :key="card.key" :xs="24" :sm="12" :md="8" :lg="6" :xl="4" class="card-col">
         <el-card shadow="never" class="stat-card">
           <div class="stat-icon" :style="{ background: card.bg }">
             <el-icon :size="24"><component :is="card.icon" /></el-icon>

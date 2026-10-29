@@ -8,7 +8,7 @@
     <div class="login-card">
       <div class="login-header">
         <div class="logo-mark">
-          <el-icon :size="22"><Key /></el-icon>
+          <img src="/logo.png" alt="logo" />
         </div>
         <h1>API Key 控制台</h1>
         <p>统一纳管多平台大模型密钥、额度与对话测试</p>
@@ -76,8 +76,6 @@
           </el-form>
         </el-tab-pane>
       </el-tabs>
-
-      <div class="login-tip">内置管理员 admin / admin123（首次启动自动初始化）</div>
     </div>
   </div>
 </template>
@@ -86,7 +84,7 @@
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { Avatar, Key, Lock, User } from '@element-plus/icons-vue'
+import { Avatar, Lock, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { register } from '@/api/auth'
 import { useUserStore } from '@/store/user'
@@ -331,12 +329,17 @@ onBeforeUnmount(() => {
   height: 52px;
   margin: 0 auto;
   border-radius: 14px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #3b82f6, #00d4ff);
-  box-shadow: 0 6px 24px rgba(0, 212, 255, 0.35);
+  background: none;
+}
+.logo-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .login-header h1 {
   font-size: 20px;
