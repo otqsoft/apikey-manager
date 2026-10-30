@@ -8,8 +8,40 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useUserStore } from '@/store/user'
 
+/**
+ * 解析后端接口地址（优先级从高到低）：
+ * 1. 运行时全局变量 window.__AK_API_BASE__：可在 index.html 里注入，改完刷新即生效，无需重新构建
+ *    <script>window.__AK_API_BASE__ = 'http://192.168.1.10:8090/api'</script>
+ * 2. 构建期环境变量 VITE_API_BASE
+ * 3. Electron 桌面端：页面以 file: 协议加载，没有代理，直连同机后端
+ * 4. 浏览器部署（nginx 等）：同源相对路径 /api，由 nginx 反代到后端 8090
+ */
+const DEFAULT_DESKTOP_API = 'http://127.0.0.1:8090/api'
+
+function resolveBaseURL(): string {
+  const runtime = (window as unknown as Record<string, unknown>).__AK_API_BASE__
+  if (typeof runtime === 'string' && runtime.length > 0) {
+    return runtime
+  }
+  const injected = (import.meta.env as Record<string, unknown>).VITE_API_BASE
+  if (typeof injected === 'string' && injected.length > 0) {
+    return injected
+  }
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    return DEFAULT_DESKTOP_API
+  }
+  return '/api'
+}
+
+const API_BASE = resolveBaseURL()
+
+// 启动时打印一次实际使用的接口地址，便于排查「请求打到哪儿去了」
+if (typeof console !== 'undefined') {
+  console.info('[api] baseURL =', API_BASE)
+}
+
 const request = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   timeout: 30000
 })
 
@@ -66,7 +98,15 @@ request.interceptors.response.use(
     } else if (status === 500) {
       ElMessage.error(msg || '服务端错误，请稍后重试')
     } else {
-      ElMessage.error(msg || error.message || '网络异常，请检查后端服务是否启动')
+      // 带上可操作的排查方向：没有状态码 = 请求根本没拿到响应（后端未启动 / 跨域被拦）
+      // 404·502·504 = 拿到了 nginx 的响应，说明静态托管生效但反向代理或后端有问题
+      let hint = ''
+      if (status === 404 || status === 502 || status === 503 || status === 504) {
+        hint = `请求失败（HTTP ${status}）：请确认 nginx 已把 /api/ 反向代理到后端，且后端服务已启动`
+      } else if (!status) {
+        hint = `无法连接后端服务（${API_BASE}）：请检查后端是否启动、接口地址是否正确；跨域部署需后端开启 CORS`
+      }
+      ElMessage.error(msg || hint || error.message || '请求失败，请稍后重试')
     }
     return Promise.reject(error)
   }

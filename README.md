@@ -152,9 +152,32 @@ npm run build:linux      # Linux AppImage
 
 > 主进程在生产模式下会尝试启动后端二进制并加载前端 dist；具体资源路径与环境变量覆盖方式见 `web/electron/` 内注释。打包前请先完成后端编译并放入约定目录。
 >
+> **接口地址**：浏览器开发模式下前端走 Vite dev server 的 `/api` 代理（`127.0.0.1:8090`）；**桌面端打包运行后页面以 `file://` 协议加载、不存在代理，前端直连 `http://127.0.0.1:8090/api`**（见 `src/utils/request.ts` 的 `resolveBaseURL`，可用构建期环境变量 `VITE_API_BASE` 覆盖）。因此桌面端需要后端同机运行在 8090，或按下方 `sync:backend` 把后端二进制打进安装包由主进程自动拉起。
+>
+> **后端二进制入库（extraResources）**：在 `web/` 目录执行 `npm run sync:backend`，会把 `backend/bin/` 的编译产物同步到 `web/resources/`（可执行文件 + `manifest/config/config.yaml`），打包后落到安装目录的 `resources/backend/`，主进程启动时会拉起它，用户双击桌面端即可直接使用。该目录下的可执行文件与配置不入库（已在 `.gitignore` 中）。
+
 > **图标**：桌面主程序 exe、安装包、卸载程序以及窗口 / 任务栏图标统一使用 `public/favicon.ico`。electron-builder 要求图标源至少 256×256（`public/favicon.ico` 原图为 180×180 单帧，直接使用会报 `ERR_ICON_TOO_SMALL`），因此由 `web/scripts/make-icon.py` 生成包含 16~256 共 7 档尺寸的多分辨率版本 `web/build/icon.ico` 供打包使用。更换 `public/favicon.ico` 后请先执行 `npm run build:icon` 重新生成，再打包。
 >
 > Electron 运行时体积较大（约 120 MB），首次打包需下载。仓库内 `web/.npmrc` 已配置 `electron_mirror` 指向 npmmirror 国内镜像，避免官方源中断后留下**损坏的 zip 缓存**（表现为打包时报 `ENOENT ... rename 'win-unpacked\electron.exe'`）。
+
+### Web 部署（nginx）
+
+`npm run build:vite` 产出的 `web/dist` 为纯静态文件，直接交给 nginx 托管即可。**但必须同时把 `/api/` 反向代理给后端**，否则接口会全部失败（后端路由挂在 `/api` 前缀下，前端 axios 的 baseURL 也是相对路径 `/api`）。完整示例见 [`docs/nginx.conf.example`](./docs/nginx.conf.example)，关键两段：
+
+```nginx
+root /path/to/apikey-manager/web/dist;   # 前端产物
+index index.html;
+
+location /api/ {                          # 后端接口（注意 proxy_pass 结尾不要带路径）
+    proxy_pass         http://127.0.0.1:8090;
+    proxy_buffering    off;               # SSE 流式对话必需，否则内容会攒到最后一次性输出
+    proxy_read_timeout 300s;
+}
+```
+
+> 后端**未开启 CORS**，因此不要把前端指向 `http://其它主机:8090/api` 跨域直连，浏览器会拦成 `Network Error`。若确实需要跨域，可在 nginx 给 `/api/` 加 `add_header Access-Control-Allow-Origin '*';` 并处理 `OPTIONS` 预检。
+>
+> 部署在子路径（如 `http://host/ak/`）时，构建前设置 `VITE_API_BASE=/ak/api`；或直接编辑 `dist/index.html` 注入 `<script>window.__AK_API_BASE__ = '/ak/api'</script>`（运行时覆盖，无需重新构建）。
 
 ## 默认账号与权限
 
@@ -203,6 +226,9 @@ npm run build:linux      # Linux AppImage
    ```
 10. **安装包缺少后端**：`web/resources/` 默认为空（仅说明文件），打包出的安装包不含后端二进制，桌面端以纯前端模式启动、接口不可用；按 `web/resources/README.txt` 放入 `backend.exe` 后重新打包即可。
 11. **更换桌面 / 安装包图标**：electron-builder 要求图标源至少 256×256，直接指向 180×180 的 `public/favicon.ico` 会报 `ERR_ICON_TOO_SMALL`。替换 `public/favicon.ico` 后执行 `npm run build:icon`（需要 Python + Pillow）重新生成 `web/build/icon.ico` 再打包。
+12. **桌面端打开后白屏**：Electron 打包后用 `loadFile`（`file://` 协议）加载 `dist/index.html`，若 Vite 未设置相对路径 base，资源引用会是 `/assets/xxx` 并被解析成 `file:///D:/assets/xxx` 导致全部加载失败。本项目 `vite.config.ts` 已设置 `base: './'`，构建产物中的引用应为 `./assets/xxx`；改动构建配置时注意保留。
+13. **桌面端登录报网络错误 / 接口失败**：打包后没有 Vite 代理，`/api` 相对地址在 `file://` 下解析异常。前端已内置判断——页面协议为 `file:` 时直连 `http://127.0.0.1:8090/api`；若后端跑在其它端口，构建时用 `VITE_API_BASE=http://127.0.0.1:9000/api npm run build:win` 覆盖。另需确认后端已启动（`npm run sync:backend` 打入后端后由主进程自动拉起）。
+14. **dist 放到 nginx 后接口报「网络异常」**：nginx 只托管了静态文件、没有反代 `/api/`。排查方式——浏览器 F12 → Network，看失败请求的完整 URL：请求地址是 `http://站点/api/auth/login` 但返回 404/返回了 index.html，即缺少反代配置；按 [`docs/nginx.conf.example`](./docs/nginx.conf.example) 加 `location /api/ { proxy_pass http://127.0.0.1:8090; proxy_buffering off; }`。若返回 502 则是后端没起；若报 `Network Error` 且无状态码，多半是配了跨域绝对地址而后端没开 CORS。
 
 ## 接口文档
 

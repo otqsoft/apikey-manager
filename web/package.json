@@ -9,6 +9,7 @@
     "dev:vite": "vite",
     "build:vite": "vite build",
     "build:icon": "python scripts/make-icon.py",
+    "sync:backend": "node scripts/sync-backend.cjs",
     "preview": "vite preview",
     "electron:dev": "concurrently -k -n vite,electron -c blue,green \"npm run dev:vite\" \"wait-on tcp:5173 && electron .\"",
     "build:electron": "npm run build:vite && electron-builder",

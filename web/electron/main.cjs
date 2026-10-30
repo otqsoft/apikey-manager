@@ -14,23 +14,29 @@ const DEV_URL = 'http://localhost:5173'
 let mainWindow = null
 let backendProcess = null
 
+/** 只接受真实存在的文件，避免把 extraResources 生成的目录误当成可执行文件 */
+function isFile(p) {
+  if (!p) return false
+  try {
+    return fs.existsSync(p) && fs.statSync(p).isFile()
+  } catch (_) {
+    return false
+  }
+}
+
 /** 尝试拉起本地后端二进制，失败不阻塞前端窗口 */
 function tryStartBackend() {
+  const resourcesDir = process.resourcesPath || ''
+  const isWin = process.platform === 'win32'
   const candidates = []
   if (process.env.BACKEND_BIN) candidates.push(process.env.BACKEND_BIN)
-  // 打包后 extraResources 输出到 resources/backend
-  candidates.push(path.join(process.resourcesPath || '', 'backend'))
-  candidates.push(path.join(app.getAppPath(), 'resources', 'backend'))
-  candidates.push(path.join(__dirname, '..', 'resources', 'backend'))
+  // 打包后 extraResources 把 web/resources/ 的内容拷进 resources/backend/
+  candidates.push(path.join(resourcesDir, 'backend', isWin ? 'backend.exe' : 'backend'))
+  candidates.push(path.join(resourcesDir, 'backend.exe'))
+  candidates.push(path.join(app.getAppPath(), 'resources', 'backend', isWin ? 'backend.exe' : 'backend'))
+  candidates.push(path.join(__dirname, '..', 'resources', 'backend', isWin ? 'backend.exe' : 'backend'))
 
-  const bin = candidates.find((p) => {
-    if (!p) return false
-    try {
-      return fs.existsSync(p)
-    } catch (_) {
-      return false
-    }
-  })
+  const bin = candidates.find(isFile)
   if (!bin) {
     console.warn('[electron] 未找到后端二进制（resources/backend），纯前端模式运行')
     return

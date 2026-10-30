@@ -2,6 +2,11 @@
 node_modules/
 web/dist/
 web/release/
+# Electron extraResources 预留位：后端二进制与配置由 scripts/sync-backend.js 生成，不入库
+web/resources/backend
+web/resources/backend.exe
+web/resources/manifest/
+
 # electron-builder 备用输出目录（排查打包问题时会临时使用）
 web/out-build/
 web/release-new/
