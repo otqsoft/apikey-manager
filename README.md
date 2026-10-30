@@ -151,6 +151,10 @@ npm run build:linux      # Linux AppImage
 ```
 
 > 主进程在生产模式下会尝试启动后端二进制并加载前端 dist；具体资源路径与环境变量覆盖方式见 `web/electron/` 内注释。打包前请先完成后端编译并放入约定目录。
+>
+> **图标**：桌面主程序 exe、安装包、卸载程序以及窗口 / 任务栏图标统一使用 `public/favicon.ico`。electron-builder 要求图标源至少 256×256（`public/favicon.ico` 原图为 180×180 单帧，直接使用会报 `ERR_ICON_TOO_SMALL`），因此由 `web/scripts/make-icon.py` 生成包含 16~256 共 7 档尺寸的多分辨率版本 `web/build/icon.ico` 供打包使用。更换 `public/favicon.ico` 后请先执行 `npm run build:icon` 重新生成，再打包。
+>
+> Electron 运行时体积较大（约 120 MB），首次打包需下载。仓库内 `web/.npmrc` 已配置 `electron_mirror` 指向 npmmirror 国内镜像，避免官方源中断后留下**损坏的 zip 缓存**（表现为打包时报 `ENOENT ... rename 'win-unpacked\electron.exe'`）。
 
 ## 默认账号与权限
 
@@ -184,6 +188,21 @@ npm run build:linux      # Linux AppImage
 5. **真实 Key 接入**：在「API-KEY 管理」新建记录粘贴真实 Key；在「模型管理」维护对应模型定价后即可在对话页选择使用；请勿在公开仓库提交真实 Key。
 6. **MySQL 连接失败**：确认 `database.default.type=mysql`、连接参数正确、MySQL 已创建空库（字符集 utf8mb4），并已在 `main.go` 放开 mysql 驱动导入，表结构由程序自动创建。
 7. **无有效上游 Key 时对话报错**：示例数据中的 Key 为占位值；失败请求会优雅提示「无法连接上游模型服务 / 上游模型服务返回错误」并保留用户消息记录，填入真实有效 Key 后即可走通成功链路（含 Token 用量解析与费用累计）。
+8. **`build:win` 报 `ENOENT: no such file or directory, rename '...\win-unpacked\electron.exe'`**：Electron 运行时 zip 缓存损坏导致解压只落地部分文件。删除缓存后重打即可：
+   ```powershell
+   # 定位并校验缓存（正常约 120 MB，若明显偏大或 tar 报 "Damaged Zip archive" 即为损坏）
+   Get-ChildItem "$env:LOCALAPPDATA\electron\Cache\electron-v*-win32-x64.zip"
+   tar -tf "$env:LOCALAPPDATA\electron\Cache\electron-v33.4.11-win32-x64.zip"
+   # 删除损坏的缓存（可先改名备份），再重新打包
+   Remove-Item "$env:LOCALAPPDATA\electron\Cache\electron-v33.4.11-win32-x64.zip"
+   $env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'; npm run build:win
+   ```
+9. **`build:win` 报 `remove '...\win-unpacked\resources\app.asar': The process cannot access the file`**：上一次的 `web/release` 目录被安全软件（联想电脑管家 / 火绒引擎 / Defender）或仍在运行的编辑器占用句柄，electron-builder 清理旧目录失败。关闭占用程序后删除 `web/release` 再打包，或临时换输出目录：
+   ```powershell
+   npx electron-builder --win nsis --config.directories.output=release2
+   ```
+10. **安装包缺少后端**：`web/resources/` 默认为空（仅说明文件），打包出的安装包不含后端二进制，桌面端以纯前端模式启动、接口不可用；按 `web/resources/README.txt` 放入 `backend.exe` 后重新打包即可。
+11. **更换桌面 / 安装包图标**：electron-builder 要求图标源至少 256×256，直接指向 180×180 的 `public/favicon.ico` 会报 `ERR_ICON_TOO_SMALL`。替换 `public/favicon.ico` 后执行 `npm run build:icon`（需要 Python + Pillow）重新生成 `web/build/icon.ico` 再打包。
 
 ## 接口文档
 

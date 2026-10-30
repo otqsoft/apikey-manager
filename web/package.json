@@ -8,6 +8,7 @@
   "scripts": {
     "dev:vite": "vite",
     "build:vite": "vite build",
+    "build:icon": "python scripts/make-icon.py",
     "preview": "vite preview",
     "electron:dev": "concurrently -k -n vite,electron -c blue,green \"npm run dev:vite\" \"wait-on tcp:5173 && electron .\"",
     "build:electron": "npm run build:vite && electron-builder",
@@ -44,7 +45,9 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "package.json",
+      "!node_modules/**/*"
     ],
     "extraResources": [
       {
@@ -58,7 +61,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "mac": {
       "target": [
@@ -73,7 +77,9 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     }
   }
 }

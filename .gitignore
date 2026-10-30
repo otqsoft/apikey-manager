@@ -2,6 +2,10 @@
 node_modules/
 web/dist/
 web/release/
+# electron-builder 备用输出目录（排查打包问题时会临时使用）
+web/out-build/
+web/release-new/
+web/test-*/
 
 # 后端编译产物与本地数据库
 backend/bin/
@@ -9,6 +13,7 @@ backend/data/
 
 .workbuddy/
 .playwright-cli/
+.screenshots/
 
 # 日志与系统文件
 *.log
