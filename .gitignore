@@ -15,6 +15,7 @@ web/test-*/
 # 后端编译产物与本地数据库
 backend/bin/
 backend/data/
+backend/logs/
 
 .workbuddy/
 .playwright-cli/

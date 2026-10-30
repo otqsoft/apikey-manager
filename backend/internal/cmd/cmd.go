@@ -82,6 +82,9 @@ var Main = gcmd.Command{
 				auth.PUT("/models/:id/status", controller.Model.SetStatus)
 
 				auth.GET("/keys", controller.Key.List)
+				// 详情（返回完整明文 api_key，供列表页「复制完整 Key」使用）：
+				// 归属校验在 logic 层，admin 全量，普通用户限 owner 或被分配者
+				auth.GET("/keys/:id", controller.Key.Detail)
 				auth.POST("/keys", controller.Key.Create)
 				auth.PUT("/keys/:id", controller.Key.Update)
 				auth.DELETE("/keys/:id", controller.Key.Delete)

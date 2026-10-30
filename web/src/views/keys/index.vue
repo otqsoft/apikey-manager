@@ -3,7 +3,7 @@
     <el-card shadow="never" class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="供应商">
-          <el-select v-model="query.provider_id" placeholder="全部供应商" clearable style="width: 180px">
+          <el-select v-model="query.provider_id" placeholder="全部供应商" clearable style="width: 180px" @change="onSearch">
             <el-option v-for="p in providerOptions" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
@@ -145,6 +145,7 @@ import {
 import { getEnabledProviders } from '@/api/providers'
 import { getUserPage } from '@/api/users'
 import type { ApiKeyForm, ApiKeyItem, Provider, UserItem } from '@/types'
+import { copyText } from '@/utils/clipboard'
 
 type Row = ApiKeyItem & { _switching?: boolean }
 
@@ -303,12 +304,7 @@ async function onCopy(row: Row) {
     ElMessage.warning('该 Key 无明文内容')
     return
   }
-  try {
-    await navigator.clipboard.writeText(detail.api_key)
-    ElMessage.success('完整 Key 已复制到剪贴板')
-  } catch {
-    ElMessage.warning('剪贴板写入失败，请手动从详情获取')
-  }
+  await copyText(detail.api_key, '完整 Key')
 }
 
 // ---------------- 分配用户 ----------------

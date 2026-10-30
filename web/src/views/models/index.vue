@@ -3,7 +3,7 @@
     <el-card shadow="never" class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="供应商">
-          <el-select v-model="query.provider_id" placeholder="全部供应商" clearable style="width: 180px">
+          <el-select v-model="query.provider_id" placeholder="全部供应商" clearable style="width: 180px" @change="onSearch">
             <el-option v-for="p in providerOptions" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
@@ -146,6 +146,7 @@ import { createModel, deleteModel, getModelPage, updateModel, updateModelStatus 
 import { getEnabledProviders } from '@/api/providers'
 import type { ModelForm, ModelItem, Provider } from '@/types'
 import { formatContext } from '@/utils/format'
+import { copyText } from '@/utils/clipboard'
 
 type Row = ModelItem & { _switching?: boolean }
 
@@ -194,19 +195,6 @@ onMounted(() => {
   loadData()
 })
 
-/** 复制文本到剪贴板（模型名称等单元格内容） */
-async function copyText(text: string, label: string) {
-  if (!text) {
-    ElMessage.warning(`${label}为空`)
-    return
-  }
-  try {
-    await navigator.clipboard.writeText(text)
-    ElMessage.success(`${label}已复制到剪贴板`)
-  } catch {
-    ElMessage.warning('剪贴板写入失败，请手动复制')
-  }
-}
 
 // ---------------- 弹窗表单 ----------------
 const dialogVisible = ref(false)

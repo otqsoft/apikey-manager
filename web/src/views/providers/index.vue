@@ -7,7 +7,7 @@
           <el-input v-model="query.keyword" placeholder="名称 / base_url" clearable style="width: 220px" @keyup.enter="onSearch" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
+          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px" @change="onSearch">
             <el-option label="启用" :value="1" />
             <el-option label="停用" :value="0" />
           </el-select>
@@ -147,6 +147,7 @@ import {
   updateProviderStatus
 } from '@/api/providers'
 import type { Provider, ProviderForm } from '@/types'
+import { copyText } from '@/utils/clipboard'
 
 type Row = Provider & { _switching?: boolean }
 
@@ -186,19 +187,6 @@ function onReset() {
 
 onMounted(loadData)
 
-/** 复制文本到剪贴板（Base URL 等单元格内容） */
-async function copyText(text: string, label: string) {
-  if (!text) {
-    ElMessage.warning(`${label}为空`)
-    return
-  }
-  try {
-    await navigator.clipboard.writeText(text)
-    ElMessage.success(`${label}已复制到剪贴板`)
-  } catch {
-    ElMessage.warning('剪贴板写入失败，请手动复制')
-  }
-}
 
 // ---------------- 弹窗表单 ----------------
 const dialogVisible = ref(false)

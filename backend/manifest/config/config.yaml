@@ -7,9 +7,23 @@
 server:
   address: ":8090"
   serverRoot: ""
-  # 访问日志/错误日志输出到控制台，便于排查
-  logger:
-    level: "info"
+
+  # ---- 日志落盘：目录 logs/，每天一个文件 logs/yyyy-mm-dd.log ----
+  # 访问日志与错误日志和业务日志写同一个按天文件，便于整体排查
+  logPath:            "logs"
+  logStdout:          true          # 同时输出到控制台
+  accessLogEnabled:   true          # 记录每次请求（排查 404/502 很有用）
+  accessLogPattern:   "{Y-m-d}.log"
+  errorLogEnabled:    true
+  errorLogPattern:    "{Y-m-d}.log"
+
+# 业务日志（g.Log()）：同样落到 logs/yyyy-mm-dd.log，每天一个文件
+# 注意：目录相对于「进程启动时的工作目录」；服务端建议用 systemd 的 WorkingDirectory 固定住
+logger:
+  level: "all"
+  stdout: true
+  path: "logs"
+  file: "{Y-m-d}.log"
 
 # -----------------------------------------------------------------------------
 # 数据库配置

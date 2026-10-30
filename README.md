@@ -228,7 +228,10 @@ location /api/ {                          # 后端接口（注意 proxy_pass 结
 11. **更换桌面 / 安装包图标**：electron-builder 要求图标源至少 256×256，直接指向 180×180 的 `public/favicon.ico` 会报 `ERR_ICON_TOO_SMALL`。替换 `public/favicon.ico` 后执行 `npm run build:icon`（需要 Python + Pillow）重新生成 `web/build/icon.ico` 再打包。
 12. **桌面端打开后白屏**：Electron 打包后用 `loadFile`（`file://` 协议）加载 `dist/index.html`，若 Vite 未设置相对路径 base，资源引用会是 `/assets/xxx` 并被解析成 `file:///D:/assets/xxx` 导致全部加载失败。本项目 `vite.config.ts` 已设置 `base: './'`，构建产物中的引用应为 `./assets/xxx`；改动构建配置时注意保留。
 13. **桌面端登录报网络错误 / 接口失败**：打包后没有 Vite 代理，`/api` 相对地址在 `file://` 下解析异常。前端已内置判断——页面协议为 `file:` 时直连 `http://127.0.0.1:8090/api`；若后端跑在其它端口，构建时用 `VITE_API_BASE=http://127.0.0.1:9000/api npm run build:win` 覆盖。另需确认后端已启动（`npm run sync:backend` 打入后端后由主进程自动拉起）。
-14. **dist 放到 nginx 后接口报「网络异常」**：nginx 只托管了静态文件、没有反代 `/api/`。排查方式——浏览器 F12 → Network，看失败请求的完整 URL：请求地址是 `http://站点/api/auth/login` 但返回 404/返回了 index.html，即缺少反代配置；按 [`docs/nginx.conf.example`](./docs/nginx.conf.example) 加 `location /api/ { proxy_pass http://127.0.0.1:8090; proxy_buffering off; }`。若返回 502 则是后端没起；若报 `Network Error` 且无状态码，多半是配了跨域绝对地址而后端没开 CORS。
+14. **http 站点上复制按钮报「剪贴板写入失败」**：`navigator.clipboard` 只在安全上下文（https / localhost / file://）下存在，`http://IP:端口` 访问时该 API 为 undefined。项目已统一到 `src/utils/clipboard.ts`，依次尝试 `navigator.clipboard` → 临时 textarea + `execCommand('copy')` → 弹窗手动复制，http 站点也能正常复制。若仍失败请确认浏览器未被策略禁用复制。
+15. **复制 API-KEY 报 404**：该按钮会调 `GET /api/keys/:id` 取完整明文，后端必须已注册该详情路由（路由表见启动日志）。升级后端二进制后需重启服务才生效。
+16. **dist 放到 nginx 后接口报「网络异常」**：nginx 只托管了静态文件、没有反代 `/api/`。排查方式——浏览器 F12 → Network，看失败请求的完整 URL：请求地址是 `http://站点/api/auth/login` 但返回 404/返回了 index.html，即缺少反代配置；按 [`docs/nginx.conf.example`](./docs/nginx.conf.example) 加 `location /api/ { proxy_pass http://127.0.0.1:8090; proxy_buffering off; }`。若返回 502 则是后端没起；若报 `Network Error` 且无状态码，多半是配了跨域绝对地址而后端没开 CORS。
+17. **后端日志**：服务端日志统一写 `logs/yyyy-mm-dd.log`（业务日志 + 访问日志 + 错误日志 + 启动路由表），目录相对进程启动时的工作目录，由 `config.yaml` 的 `server` 与 `logger` 节控制。排查路由问题直接 `grep "keys/:id" logs/$(date +%F).log` 看启动时的路由表。
 
 ## 接口文档
 
