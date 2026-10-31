@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 搜索筛选区 -->
-    <el-card shadow="never" class="toolbar">
+    <div class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="关键字">
           <el-input v-model="query.keyword" placeholder="名称 / base_url" clearable style="width: 220px" @keyup.enter="onSearch" />
@@ -15,14 +15,14 @@
         <el-form-item>
           <el-button type="primary" plain :icon="Search" @click="onSearch">查询</el-button>
           <el-button plain :icon="RefreshLeft" @click="onReset">重置</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增供应商</el-button>
+          <el-button v-if="userStore.isAdmin" type="primary" :icon="Plus" @click="openCreate">新增供应商</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
 
     <!-- 表格 -->
     <el-card shadow="never">
-      <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无供应商数据，点击右上角「新增供应商」录入">
+      <el-table v-loading="loading" :data="tableData" border stripe :empty-text="userStore.isAdmin ? '暂无供应商数据，点击右上角「新增供应商」录入' : '暂无供应商数据'">
         <el-table-column prop="id" label="ID" width="60" fixed="left" />
         <el-table-column prop="name" label="供应商名称" min-width="140" show-overflow-tooltip fixed="left">
           <template #default="{ row }">
@@ -59,14 +59,16 @@
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-switch
+              v-if="userStore.isAdmin"
               :model-value="row.status === 1"
               :loading="row._switching"
               @change="(val: boolean) => onToggleStatus(row, val)"
             />
+            <el-tag v-else :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column v-if="userStore.isAdmin" label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="onDelete(row)">删除</el-button>
@@ -139,6 +141,7 @@ import { onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CopyDocument, Plus, RefreshLeft, Search } from '@element-plus/icons-vue'
+import { useUserStore } from '@/store/user'
 import {
   createProvider,
   deleteProvider,
@@ -155,6 +158,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<Row[]>([])
 const total = ref(0)
+const userStore = useUserStore()
 
 const query = reactive({ page: 1, page_size: 10, keyword: '', status: '' as number | '' })
 
@@ -289,7 +293,7 @@ async function onDelete(row: Row) {
 
 <style scoped>
 .toolbar {
-  margin-bottom: 16px;
+  padding: 16px 16px 8px;
 }
 .pager {
   margin-top: 16px;
@@ -319,5 +323,10 @@ async function onDelete(row: Row) {
 }
 .copy-cell .el-button {
   flex-shrink: 0;
+}
+
+.readonly-tip {
+  font-size: 12px;
+  color: #909399;
 }
 </style>

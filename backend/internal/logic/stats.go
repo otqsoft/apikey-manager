@@ -52,6 +52,9 @@ func (s *statsService) adminOverview(ctx context.Context) (map[string]interface{
 }
 
 func (s *statsService) userOverview(ctx context.Context, userID uint) (map[string]interface{}, error) {
+	// 供应商 / 模型为全局共享资源（管理员维护、全员可见），普通用户展示真实总数，与列表页口径一致
+	providerCount, _ := g.DB().Model("providers").Count()
+	modelCount, _ := g.DB().Model("models").Count()
 	// 我的可用密钥：名下（owner）或被分配（key_user）
 	myKeyCount, _ := g.DB().Model("api_keys").
 		Where("(owner_id = ? OR EXISTS (SELECT 1 FROM key_user ku WHERE ku.key_id = api_keys.id AND ku.user_id = ?))", userID, userID).
@@ -68,6 +71,8 @@ func (s *statsService) userOverview(ctx context.Context, userID uint) (map[strin
 	totalCost, _ := msgModel().Sum("m.cost")
 
 	return map[string]interface{}{
+		"provider_count":   providerCount,
+		"model_count":      modelCount,
 		"my_key_count":     myKeyCount,
 		"my_session_count": mySessionCount,
 		"today_tokens":     int64(todayTokens),

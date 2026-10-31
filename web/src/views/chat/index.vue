@@ -366,7 +366,7 @@ onMounted(async () => {
   display: flex;
   height: calc(100vh - 72px);
   background: transparent;
-  border-radius: 0;
+  border-radius: 16px;
   overflow: hidden;
 }
 .session-panel {
@@ -440,7 +440,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 18px;
+  padding: 16px 18px;
   border-bottom: 1px solid #e8eef6;
   background: #fff;
 }
@@ -475,7 +475,7 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   padding: 20px 24px;
-  background: #eef2f8;
+  background: #f4f7fc;
 }
 .msg-row {
   display: flex;
@@ -712,7 +712,7 @@ onMounted(async () => {
 /* ---------- 一体化输入区：容器即输入框，发送按钮内嵌右下角 ---------- */
 .input-area {
   padding: 6px 18px 16px;
-  background: #eef2f8;
+  background: #f4f7fc;
 }
 .input-shell {
   max-width: 860px;

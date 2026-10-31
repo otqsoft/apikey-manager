@@ -257,6 +257,8 @@ export interface OverviewAdmin {
   total_cost: number
 }
 export interface OverviewUser {
+  provider_count: number
+  model_count: number
   my_key_count: number
   my_session_count: number
   today_tokens: number

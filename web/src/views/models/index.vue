@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-card shadow="never" class="toolbar">
+    <div class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="供应商">
           <el-select v-model="query.provider_id" placeholder="全部供应商" clearable style="width: 180px" @change="onSearch">
@@ -13,13 +13,13 @@
         <el-form-item>
           <el-button type="primary" plain :icon="Search" @click="onSearch">查询</el-button>
           <el-button plain :icon="RefreshLeft" @click="onReset">重置</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增模型</el-button>
+          <el-button v-if="userStore.isAdmin" type="primary" :icon="Plus" @click="openCreate">新增模型</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
 
     <el-card shadow="never">
-      <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无模型数据，点击右上角「新增模型」录入">
+      <el-table v-loading="loading" :data="tableData" border stripe :empty-text="userStore.isAdmin ? '暂无模型数据，点击右上角「新增模型」录入' : '暂无模型数据'">
         <el-table-column prop="id" label="ID" width="60" fixed="left" />
         <el-table-column label="模型名称" min-width="250" fixed="left">
           <template #default="{ row }">
@@ -60,10 +60,16 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-switch :model-value="row.status === 1" :loading="row._switching" @change="(val: boolean) => onToggleStatus(row, val)" />
+            <el-switch
+              v-if="userStore.isAdmin"
+              :model-value="row.status === 1"
+              :loading="row._switching"
+              @change="(val: boolean) => onToggleStatus(row, val)"
+            />
+            <el-tag v-else :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column v-if="userStore.isAdmin" label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="onDelete(row)">删除</el-button>
@@ -147,10 +153,12 @@ import { getEnabledProviders } from '@/api/providers'
 import type { ModelForm, ModelItem, Provider } from '@/types'
 import { formatContext } from '@/utils/format'
 import { copyText } from '@/utils/clipboard'
+import { useUserStore } from '@/store/user'
 
 type Row = ModelItem & { _switching?: boolean }
 
 const loading = ref(false)
+const userStore = useUserStore()
 const submitting = ref(false)
 const tableData = ref<Row[]>([])
 const total = ref(0)
@@ -308,7 +316,7 @@ async function onDelete(row: Row) {
 
 <style scoped>
 .toolbar {
-  margin-bottom: 16px;
+  padding: 16px 16px 8px;
 }
 .pager {
   margin-top: 16px;
@@ -361,6 +369,11 @@ async function onDelete(row: Row) {
 }
 .tip-text {
   margin-left: 10px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.readonly-tip {
   font-size: 12px;
   color: #909399;
 }

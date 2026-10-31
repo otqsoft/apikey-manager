@@ -1,5 +1,10 @@
-// Package logic 数据归属辅助：providers/models/api_keys 均带 owner_id（创建者），
-// admin 全量可见可操作；普通用户仅能操作自己名下资源。
+// Package logic 数据归属辅助。
+//
+// 权限模型：
+//   - providers / models：共享资源。所有登录用户可读（创建 API-KEY 时选用），
+//     增删改仅管理员（路由级 RequireAdmin）。owner_id 仅用于记录创建者。
+//   - api_keys：严格按归属隔离。每个用户（含管理员）只管理自己名下的密钥，
+//     owner 可把自己的 Key 分配给其他用户使用（key_user）。
 package logic
 
 import (
@@ -36,7 +41,7 @@ func assertResourceOwned(ctx context.Context, table string, id, userID uint, isA
 	return true, nil
 }
 
-// assertProviderOwned 供应商归属校验（非 admin 创建模型/密钥时，供应商必须是自己名下）
+// assertProviderOwned 供应商归属校验（模型管理为管理员操作，admin 旁路）
 func assertProviderOwned(ctx context.Context, providerID, userID uint, isAdmin bool) error {
 	if isAdmin {
 		return nil
@@ -50,6 +55,19 @@ func assertProviderOwned(ctx context.Context, providerID, userID uint, isAdmin b
 	}
 	if rec["owner_id"].Uint() != userID {
 		return errs.Forbidden("无权使用该供应商，请先在供应商管理中创建自己的供应商")
+	}
+	return nil
+}
+
+// assertProviderExists 供应商存在性校验：供应商为共享资源，创建/编辑 API-KEY
+// 时可选用任意供应商（不再要求归属）
+func assertProviderExists(ctx context.Context, providerID uint) error {
+	cnt, err := g.DB().Model("providers").Where("id", providerID).Count()
+	if err != nil {
+		return err
+	}
+	if cnt == 0 {
+		return errs.BadRequest("所属供应商不存在")
 	}
 	return nil
 }

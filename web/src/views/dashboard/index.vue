@@ -131,6 +131,18 @@ async function loadOverview() {
 }
 
 const statCards = computed(() => {
+    // 普通用户：供应商/模型为全局共享资源显示真实总数；Key 与会话为个人口径
+    if (!store.isAdmin) {
+      return [
+        { key: 'provider', label: '供应商数', value: formatInt(userData.value.provider_count), icon: 'Connection', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
+        { key: 'model', label: '模型数', value: formatInt(userData.value.model_count), icon: 'Files', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' },
+        { key: 'myKey', label: 'Key 数', value: formatInt(userData.value.my_key_count), icon: 'Key', bg: 'linear-gradient(135deg,#fef3c7,#fffbeb)' },
+        // { key: 'mySession', label: '我的会话数', value: formatInt(userData.value.my_session_count), icon: 'ChatDotRound', bg: 'linear-gradient(135deg,#fee2e2,#fef2f2)' },
+        { key: 'todayTokens', label: '今日Token', value: formatInt(userData.value.today_tokens), icon: 'DataLine', bg: 'linear-gradient(135deg,#e0f2fe,#f0f9ff)' },
+        { key: 'todayCost', label: '今日费用', value: formatMoney(userData.value.today_cost), icon: 'Money', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
+        { key: 'totalCost', label: '累计费用', value: formatMoneyCompact(userData.value.total_cost), icon: 'Wallet', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' }
+      ]
+    }
     return [
       { key: 'provider', label: '供应商数', value: formatInt(adminData.value.provider_count), icon: 'Connection', bg: 'linear-gradient(135deg,#dbeafe,#eff6ff)' },
       { key: 'model', label: '模型数', value: formatInt(adminData.value.model_count), icon: 'Files', bg: 'linear-gradient(135deg,#dcfce7,#f0fdf4)' },

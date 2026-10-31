@@ -241,7 +241,7 @@ async function onCommand(cmd: string) {
   color: #94a3b8;
 }
 .layout-main {
-  background-color: #f4f7fc;
+  background: url('/back.png');
   padding: 14px 16px;
   overflow-y: auto;
 }

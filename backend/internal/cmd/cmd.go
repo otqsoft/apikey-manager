@@ -65,22 +65,17 @@ var Main = gcmd.Command{
 				// 普通用户：我的可用密钥
 				auth.GET("/me/keys", controller.Key.MeList)
 
-				// 供应商 / 模型 / 密钥管理：admin 全量；普通用户仅自己名下数据
-				// （数据归属过滤与归属校验统一在 logic 层按 owner_id 执行）
+				// 供应商 / 模型：共享资源，所有登录用户可读（创建 API-KEY 时选用）；
+				// 增删改仅管理员（写在下方 admin 组）
 				auth.GET("/providers", controller.Provider.List)
-				auth.POST("/providers", controller.Provider.Create)
 				auth.GET("/providers/:id", controller.Provider.Detail)
-				auth.PUT("/providers/:id", controller.Provider.Update)
-				auth.DELETE("/providers/:id", controller.Provider.Delete)
-				auth.PUT("/providers/:id/status", controller.Provider.SetStatus)
 
 				auth.GET("/models", controller.Model.List)
-				auth.POST("/models", controller.Model.Create)
 				auth.GET("/models/:id", controller.Model.Detail)
-				auth.PUT("/models/:id", controller.Model.Update)
-				auth.DELETE("/models/:id", controller.Model.Delete)
-				auth.PUT("/models/:id/status", controller.Model.SetStatus)
 
+				// 密钥：每个用户（含管理员）只管理自己名下的 API-KEY，
+				// 归属校验统一在 logic 层按 owner_id = 当前用户 执行（无 admin 旁路）；
+				// owner 可把自己的 Key 分配给其他用户使用（key_user）
 				auth.GET("/keys", controller.Key.List)
 				// 详情（返回完整明文 api_key，供列表页「复制完整 Key」使用）：
 				// 归属校验在 logic 层，admin 全量，普通用户限 owner 或被分配者
@@ -108,9 +103,20 @@ var Main = gcmd.Command{
 				// 用户列表：登录即可读（「分配用户」弹窗需要选择用户）
 				auth.GET("/users", controller.User.List)
 
-				// 仅管理员：用户管理（增删改、启停、重置密码、查看分配）
+				// 仅管理员：供应商 / 模型的增删改与启停，以及用户管理
 				auth.Group("/", func(admin *ghttp.RouterGroup) {
 					admin.Middleware(middleware.RequireAdmin)
+
+					admin.POST("/providers", controller.Provider.Create)
+					admin.PUT("/providers/:id", controller.Provider.Update)
+					admin.DELETE("/providers/:id", controller.Provider.Delete)
+					admin.PUT("/providers/:id/status", controller.Provider.SetStatus)
+
+					admin.POST("/models", controller.Model.Create)
+					admin.PUT("/models/:id", controller.Model.Update)
+					admin.DELETE("/models/:id", controller.Model.Delete)
+					admin.PUT("/models/:id/status", controller.Model.SetStatus)
+
 					admin.POST("/users", controller.User.Create)
 					admin.GET("/users/:id", controller.User.Detail)
 					admin.PUT("/users/:id", controller.User.Update)

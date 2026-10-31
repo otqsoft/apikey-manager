@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-card shadow="never" class="toolbar">
+    <div class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="供应商">
           <el-select v-model="query.provider_id" placeholder="全部供应商" clearable style="width: 180px" @change="onSearch">
@@ -16,7 +16,7 @@
           <el-button type="primary" :icon="Plus" @click="openCreate">新增 Key</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
 
     <el-card shadow="never">
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无 Key 数据，点击右上角「新增 Key」录入">
@@ -338,7 +338,7 @@ async function onSaveAssign() {
 
 <style scoped>
 .toolbar {
-  margin-bottom: 16px;
+  padding: 16px 16px 8px;
 }
 .pager {
   margin-top: 16px;

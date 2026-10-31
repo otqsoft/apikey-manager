@@ -20,7 +20,8 @@ func init() {
 
 type keyService struct{}
 
-// List 密钥分页列表；admin 全量，普通用户仅自己名下；api_key 掩码回显
+// List 密钥分页列表：严格按归属隔离，每个用户（含管理员）只见自己名下的密钥；
+// api_key 掩码回显
 func (s *keyService) List(ctx context.Context, userID uint, isAdmin bool, page, size int, providerID uint, keyword string) (*model.PageResult, error) {
 	if page <= 0 {
 		page = 1
@@ -28,8 +29,9 @@ func (s *keyService) List(ctx context.Context, userID uint, isAdmin bool, page, 
 	if size <= 0 {
 		size = 10
 	}
+	// 注意：isAdmin 不参与数据范围判断（权限模型：API-KEY 每个用户独立管理，含管理员）
 	m := applyOwnerScope(g.DB().Model("api_keys k").
-		LeftJoin("providers p", "p.id = k.provider_id"), userID, isAdmin, "k.owner_id")
+		LeftJoin("providers p", "p.id = k.provider_id"), userID, false, "k.owner_id")
 	if providerID > 0 {
 		m = m.Where("k.provider_id", providerID)
 	}
@@ -57,7 +59,7 @@ func (s *keyService) List(ctx context.Context, userID uint, isAdmin bool, page, 
 	return &model.PageResult{List: safeList(records), Total: total, Page: page, PageSize: size}, nil
 }
 
-// Detail 详情返回完整 api_key；admin 全量，普通用户限 owner 或被分配者
+// Detail 详情返回完整 api_key：限 owner 或被分配者（admin 无旁路，密钥按归属隔离）
 func (s *keyService) Detail(ctx context.Context, id, userID uint, isAdmin bool) (*model.ApiKey, error) {
 	var k model.ApiKey
 	if err := g.DB().Model("api_keys").Where("id", id).Scan(&k); err != nil {
@@ -66,7 +68,7 @@ func (s *keyService) Detail(ctx context.Context, id, userID uint, isAdmin bool) 
 	if k.ID == 0 {
 		return nil, errs.NotFound("密钥不存在")
 	}
-	if !isAdmin && k.OwnerID != userID {
+	if k.OwnerID != userID {
 		cnt, err := g.DB().Model("key_user").Where("key_id", id).Where("user_id", userID).Count()
 		if err != nil {
 			return nil, err
@@ -78,13 +80,13 @@ func (s *keyService) Detail(ctx context.Context, id, userID uint, isAdmin bool) 
 	return &k, nil
 }
 
-// Create 新建密钥：归属当前用户；非 admin 校验供应商归属；
+// Create 新建密钥：归属当前用户；供应商为共享资源，任意登录用户均可选用；
 // 同一事务内幂等写 key_user（创建者自动可见于 /me/keys）
 func (s *keyService) Create(ctx context.Context, creatorID uint, isAdmin bool, req *model.KeySaveReq) (uint, error) {
 	if req.APIKey == "" {
 		return 0, errs.BadRequest("api_key 不能为空")
 	}
-	if err := assertProviderOwned(ctx, req.ProviderID, creatorID, isAdmin); err != nil {
+	if err := assertProviderExists(ctx, req.ProviderID); err != nil {
 		return 0, err
 	}
 	status := req.Status
@@ -137,16 +139,16 @@ func (s *keyService) Create(ctx context.Context, creatorID uint, isAdmin bool, r
 	return newID, nil
 }
 
-// Update 更新密钥（归属校验）；api_key 留空表示不修改明文
+// Update 更新密钥（仅 owner 可操作）；api_key 留空表示不修改明文
 func (s *keyService) Update(ctx context.Context, id, userID uint, isAdmin bool, req *model.KeySaveReq) error {
-	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, false, "密钥")
 	if err != nil {
 		return err
 	}
 	if !exists {
 		return errs.NotFound("密钥不存在")
 	}
-	if err := assertProviderOwned(ctx, req.ProviderID, userID, isAdmin); err != nil {
+	if err := assertProviderExists(ctx, req.ProviderID); err != nil {
 		return err
 	}
 	data := g.Map{
@@ -166,7 +168,7 @@ func (s *keyService) Update(ctx context.Context, id, userID uint, isAdmin bool, 
 
 // Delete 删除密钥并级联清理分配关系（归属校验）
 func (s *keyService) Delete(ctx context.Context, id, userID uint, isAdmin bool) error {
-	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, false, "密钥")
 	if err != nil {
 		return err
 	}
@@ -189,7 +191,7 @@ func (s *keyService) Delete(ctx context.Context, id, userID uint, isAdmin bool) 
 
 // SetStatus 启停密钥（归属校验）
 func (s *keyService) SetStatus(ctx context.Context, id, userID uint, isAdmin bool, status int) error {
-	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, false, "密钥")
 	if err != nil {
 		return err
 	}
@@ -202,7 +204,7 @@ func (s *keyService) SetStatus(ctx context.Context, id, userID uint, isAdmin boo
 
 // ListUsers 已分配用户简表 + user_id 数组（仅 key 的 owner 或 admin 可调用）
 func (s *keyService) ListUsers(ctx context.Context, id, userID uint, isAdmin bool) ([]map[string]interface{}, error) {
-	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, false, "密钥")
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +235,7 @@ func (s *keyService) ListUsers(ctx context.Context, id, userID uint, isAdmin boo
 
 // AssignUsers 全量覆盖分配关系（去重后替换）；仅 key 的 owner 或 admin 可操作
 func (s *keyService) AssignUsers(ctx context.Context, id, userID uint, isAdmin bool, userIDs []uint) error {
-	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, isAdmin, "密钥")
+	exists, err := assertResourceOwned(ctx, "api_keys", id, userID, false, "密钥")
 	if err != nil {
 		return err
 	}

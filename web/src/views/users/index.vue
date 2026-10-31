@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-card shadow="never" class="toolbar">
+    <div class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="关键字">
           <el-input v-model="query.keyword" placeholder="用户名 / 显示名" clearable style="width: 220px" @keyup.enter="onSearch" />
@@ -11,7 +11,7 @@
           <el-button type="primary" :icon="Plus" @click="openCreate">新增用户</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
 
     <el-card shadow="never">
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无用户数据，点击右上角「新增用户」录入">
@@ -381,7 +381,7 @@ async function openUserKeys(row: Row) {
 
 <style scoped>
 .toolbar {
-  margin-bottom: 16px;
+  padding: 16px 16px 8px;
 }
 .pager {
   margin-top: 16px;

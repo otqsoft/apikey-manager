@@ -17,7 +17,7 @@ func init() {
 
 type modelService struct{}
 
-// List 模型分页列表，冗余供应商名称；admin 全量，普通用户仅自己名下
+// List 模型分页列表：共享资源，所有登录用户可见；冗余供应商名称
 func (s *modelService) List(ctx context.Context, userID uint, isAdmin bool, page, size int, providerID uint, keyword string) (*model.PageResult, error) {
 	if page <= 0 {
 		page = 1
@@ -25,7 +25,7 @@ func (s *modelService) List(ctx context.Context, userID uint, isAdmin bool, page
 	if size <= 0 {
 		size = 10
 	}
-	m := applyOwnerScope(g.DB().Model("models m").LeftJoin("providers p", "p.id = m.provider_id"), userID, isAdmin, "m.owner_id")
+	m := g.DB().Model("models m").LeftJoin("providers p", "p.id = m.provider_id")
 	if providerID > 0 {
 		m = m.Where("m.provider_id", providerID)
 	}
@@ -50,7 +50,7 @@ func (s *modelService) List(ctx context.Context, userID uint, isAdmin bool, page
 	return &model.PageResult{List: safeList(records), Total: total, Page: page, PageSize: size}, nil
 }
 
-// Detail 模型详情（归属校验）
+// Detail 模型详情：共享资源，所有登录用户可见
 func (s *modelService) Detail(ctx context.Context, id, userID uint, isAdmin bool) (*model.Model, error) {
 	var m model.Model
 	if err := g.DB().Model("models").Where("id", id).Scan(&m); err != nil {
@@ -58,9 +58,6 @@ func (s *modelService) Detail(ctx context.Context, id, userID uint, isAdmin bool
 	}
 	if m.ID == 0 {
 		return nil, errs.NotFound("模型不存在")
-	}
-	if !isAdmin && m.OwnerID != userID {
-		return nil, errs.Forbidden("无权查看该模型")
 	}
 	return &m, nil
 }

@@ -16,7 +16,8 @@ func init() {
 
 type providerService struct{}
 
-// List 供应商分页列表；admin 全量，普通用户仅自己名下；status=-1 表示不按状态过滤
+// List 供应商分页列表：共享资源，所有登录用户可见（创建 API-KEY 时选用）；
+// status=-1 表示不按状态过滤
 func (s *providerService) List(ctx context.Context, userID uint, isAdmin bool, page, size int, keyword string, status int) (*model.PageResult, error) {
 	if page <= 0 {
 		page = 1
@@ -24,7 +25,7 @@ func (s *providerService) List(ctx context.Context, userID uint, isAdmin bool, p
 	if size <= 0 {
 		size = 10
 	}
-	m := applyOwnerScope(g.DB().Model("providers"), userID, isAdmin, "owner_id")
+	m := g.DB().Model("providers")
 	if keyword != "" {
 		m = m.WhereLike("name", "%"+keyword+"%")
 	}
@@ -42,7 +43,7 @@ func (s *providerService) List(ctx context.Context, userID uint, isAdmin bool, p
 	return &model.PageResult{List: safeList(records), Total: total, Page: page, PageSize: size}, nil
 }
 
-// Detail 供应商详情（归属校验）
+// Detail 供应商详情：共享资源，所有登录用户可见
 func (s *providerService) Detail(ctx context.Context, id, userID uint, isAdmin bool) (*model.Provider, error) {
 	var p model.Provider
 	if err := g.DB().Model("providers").Where("id", id).Scan(&p); err != nil {
@@ -50,9 +51,6 @@ func (s *providerService) Detail(ctx context.Context, id, userID uint, isAdmin b
 	}
 	if p.ID == 0 {
 		return nil, errs.NotFound("供应商不存在")
-	}
-	if !isAdmin && p.OwnerID != userID {
-		return nil, errs.Forbidden("无权查看该供应商")
 	}
 	return &p, nil
 }
