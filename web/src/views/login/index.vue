@@ -1,81 +1,108 @@
 <template>
   <div class="login-page">
-    <!-- 粒子网络背景（尊重 reduced-motion：不做动画） -->
+    <!-- 浅色粒子网络背景（尊重 reduced-motion：只画一帧不做动画） -->
     <canvas ref="canvasRef" class="bg-canvas" />
-    <div class="glow glow-1" />
-    <div class="glow glow-2" />
 
-    <div class="login-card">
-      <div class="login-header">
-        <div class="logo-mark">
-          <img src="/logo.png" alt="logo" />
+    <div class="login-shell">
+      <!-- 左侧品牌区（窄屏隐藏） -->
+      <section class="brand-panel">
+        <div class="brand-top">
+          <div class="logo-mark"><img src="/logo.png" alt="logo" /></div>
+          <span class="brand-name">API Key 控制台</span>
         </div>
-        <h1>API Key 控制台</h1>
-        <p>统一纳管多平台大模型密钥、额度与对话测试</p>
-      </div>
 
-      <el-tabs v-model="activeTab" class="auth-tabs" stretch>
-        <!-- 登录 -->
-        <el-tab-pane label="登录" name="login">
-          <el-form ref="loginRef" :model="loginForm" :rules="loginRules" label-position="top" @keyup.enter="onLogin">
-            <el-form-item label="账号" prop="username">
-              <el-input v-model="loginForm.username" placeholder="请输入账号" size="large" :prefix-icon="User" />
-            </el-form-item>
-            <el-form-item label="密码" prop="password">
-              <el-input
-                v-model="loginForm.password"
-                type="password"
-                show-password
-                placeholder="请输入密码"
-                size="large"
-                :prefix-icon="Lock"
-                @keyup.enter="onLogin"
-              />
-            </el-form-item>
-            <button type="button" class="auth-btn" :disabled="loginLoading" @click="onLogin">
-              <span v-if="!loginLoading">登 录</span>
-              <span v-else class="btn-loading" />
-            </button>
-          </el-form>
-        </el-tab-pane>
+        <div class="brand-hero">
+          <h1>统一纳管多平台<br />大模型 API 密钥</h1>
+          <p>供应商 · 模型 · 密钥 · 额度 · 对话测试，一个控制台全部搞定</p>
+          <ul class="brand-features">
+            <li>
+              <el-icon :size="18"><Connection /></el-icon>
+              <div><b>多平台密钥纳管</b><span>OpenAI / Anthropic 兼容协议统一接入</span></div>
+            </li>
+            <li>
+              <el-icon :size="18"><DataLine /></el-icon>
+              <div><b>额度费用自动统计</b><span>Token 用量与费用折算实时聚合</span></div>
+            </li>
+            <li>
+              <el-icon :size="18"><ChatDotRound /></el-icon>
+              <div><b>流式对话测试</b><span>SSE 逐字渲染，一键验证密钥可用性</span></div>
+            </li>
+          </ul>
+        </div>
 
-        <!-- 注册（契约 8.1：公开接口，成功不签发 token） -->
-        <el-tab-pane label="注册" name="register">
-          <el-form ref="regRef" :model="regForm" :rules="regRules" label-position="top" @keyup.enter="onRegister">
-            <el-form-item label="用户名" prop="username">
-              <el-input v-model="regForm.username" placeholder="3~32 位字母、数字或下划线" size="large" :prefix-icon="User" />
-            </el-form-item>
-            <el-form-item label="密码" prop="password">
-              <el-input
-                v-model="regForm.password"
-                type="password"
-                show-password
-                placeholder="至少 6 位"
-                size="large"
-                :prefix-icon="Lock"
-              />
-            </el-form-item>
-            <el-form-item label="确认密码" prop="confirm">
-              <el-input
-                v-model="regForm.confirm"
-                type="password"
-                show-password
-                placeholder="再次输入密码"
-                size="large"
-                :prefix-icon="Lock"
-                @keyup.enter="onRegister"
-              />
-            </el-form-item>
-            <el-form-item label="昵称（可选）" prop="display_name">
-              <el-input v-model="regForm.display_name" placeholder="展示名，可留空" size="large" :prefix-icon="Avatar" />
-            </el-form-item>
-            <button type="button" class="auth-btn" :disabled="regLoading" @click="onRegister">
-              <span v-if="!regLoading">注 册</span>
-              <span v-else class="btn-loading" />
-            </button>
-          </el-form>
-        </el-tab-pane>
-      </el-tabs>
+        <p class="brand-foot">轻量 · 安全 · 多用户隔离</p>
+      </section>
+
+      <!-- 右侧表单区 -->
+      <section class="form-panel">
+        <div class="form-inner">
+          <h2>{{ activeTab === 'login' ? '欢迎回来' : '创建账号' }}</h2>
+          <p class="form-sub">{{ activeTab === 'login' ? '登录后开始管理你的密钥' : '注册即开通普通用户权限' }}</p>
+
+          <el-tabs v-model="activeTab" class="auth-tabs" stretch>
+            <!-- 登录 -->
+            <el-tab-pane label="登录" name="login">
+              <el-form ref="loginRef" :model="loginForm" :rules="loginRules" label-position="top" @keyup.enter="onLogin">
+                <el-form-item label="账号" prop="username">
+                  <el-input v-model="loginForm.username" placeholder="请输入账号" size="large" :prefix-icon="User" />
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                  <el-input
+                    v-model="loginForm.password"
+                    type="password"
+                    show-password
+                    placeholder="请输入密码"
+                    size="large"
+                    :prefix-icon="Lock"
+                    @keyup.enter="onLogin"
+                  />
+                </el-form-item>
+                <button type="button" class="auth-btn" :disabled="loginLoading" @click="onLogin">
+                  <span v-if="!loginLoading">登 录</span>
+                  <span v-else class="btn-loading" />
+                </button>
+              </el-form>
+            </el-tab-pane>
+
+            <!-- 注册（契约 8.1：公开接口，成功不签发 token） -->
+            <el-tab-pane label="注册" name="register">
+              <el-form ref="regRef" :model="regForm" :rules="regRules" label-position="top" @keyup.enter="onRegister">
+                <el-form-item label="用户名" prop="username">
+                  <el-input v-model="regForm.username" placeholder="3~32 位字母、数字或下划线" size="large" :prefix-icon="User" />
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                  <el-input
+                    v-model="regForm.password"
+                    type="password"
+                    show-password
+                    placeholder="至少 6 位"
+                    size="large"
+                    :prefix-icon="Lock"
+                  />
+                </el-form-item>
+                <el-form-item label="确认密码" prop="confirm">
+                  <el-input
+                    v-model="regForm.confirm"
+                    type="password"
+                    show-password
+                    placeholder="再次输入密码"
+                    size="large"
+                    :prefix-icon="Lock"
+                    @keyup.enter="onRegister"
+                  />
+                </el-form-item>
+                <el-form-item label="昵称（可选）" prop="display_name">
+                  <el-input v-model="regForm.display_name" placeholder="展示名，可留空" size="large" :prefix-icon="Avatar" />
+                </el-form-item>
+                <button type="button" class="auth-btn" :disabled="regLoading" @click="onRegister">
+                  <span v-if="!regLoading">注 册</span>
+                  <span v-else class="btn-loading" />
+                </button>
+              </el-form>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -176,7 +203,7 @@ async function onRegister() {
   }
 }
 
-// ---------------- 粒子网络背景 ----------------
+// ---------------- 浅色粒子网络背景 ----------------
 const canvasRef = ref<HTMLCanvasElement>()
 let rafId = 0
 let resizeHandler: (() => void) | null = null
@@ -198,13 +225,13 @@ function initCanvas() {
 
   let w = (canvas.width = window.innerWidth)
   let h = (canvas.height = window.innerHeight)
-  const count = Math.min(90, Math.floor((w * h) / 16000))
+  const count = Math.min(80, Math.floor((w * h) / 20000))
   const particles: Particle[] = Array.from({ length: count }, () => ({
     x: Math.random() * w,
     y: Math.random() * h,
-    vx: (Math.random() - 0.5) * 0.35,
-    vy: (Math.random() - 0.5) * 0.35,
-    r: Math.random() * 1.6 + 0.6
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    r: Math.random() * 1.5 + 0.6
   }))
 
   const LINK_DIST = 130
@@ -218,7 +245,7 @@ function initCanvas() {
       if (p.y < 0 || p.y > h) p.vy *= -1
       ctx.beginPath()
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.55)'
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.22)'
       ctx.fill()
     }
     for (let i = 0; i < particles.length; i++) {
@@ -232,7 +259,7 @@ function initCanvas() {
           ctx.beginPath()
           ctx.moveTo(a.x, a.y)
           ctx.lineTo(b.x, b.y)
-          ctx.strokeStyle = `rgba(59, 130, 246, ${(1 - dist / LINK_DIST) * 0.22})`
+          ctx.strokeStyle = `rgba(59, 130, 246, ${(1 - dist / LINK_DIST) * 0.09})`
           ctx.lineWidth = 1
           ctx.stroke()
         }
@@ -264,6 +291,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* 页面底：浅色 + 两处淡蓝弥散光 */
 .login-page {
   min-height: 100vh;
   display: flex;
@@ -271,141 +299,202 @@ onBeforeUnmount(() => {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  padding: 24px 0;
+  padding: 24px;
   background:
-    radial-gradient(ellipse 60% 45% at 70% 20%, rgba(59, 130, 246, 0.14), transparent),
-    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(0, 212, 255, 0.08), transparent),
-    #0a1628;
+    radial-gradient(ellipse 55% 40% at 78% 12%, rgba(59, 130, 246, 0.10), transparent),
+    radial-gradient(ellipse 45% 38% at 12% 88%, rgba(14, 165, 233, 0.08), transparent),
+    #f4f7fc;
 }
 .bg-canvas {
   position: absolute;
   inset: 0;
 }
-/* 弥散光斑，营造纵深 */
-.glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  pointer-events: none;
-}
-.glow-1 {
-  width: 420px;
-  height: 420px;
-  background: rgba(59, 130, 246, 0.16);
-  top: -120px;
-  right: -80px;
-}
-.glow-2 {
-  width: 340px;
-  height: 340px;
-  background: rgba(0, 212, 255, 0.1);
-  bottom: -120px;
-  left: -60px;
-}
-@media (prefers-reduced-motion: reduce) {
-  .glow {
-    filter: none;
-  }
-}
 
-.login-card {
+/* 主体：左品牌 + 右表单 的整体容器（无边框、无阴影轻量风） */
+.login-shell {
   position: relative;
   z-index: 1;
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  padding: 30px 32px 22px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  display: flex;
+  width: min(980px, 100%);
+  min-height: 560px;
+  border-radius: 24px;
+  overflow: hidden;
 }
-.login-header {
-  text-align: center;
-  margin-bottom: 18px;
+
+/* ---------- 左侧品牌区 ---------- */
+.brand-panel {
+  width: 46%;
+  flex-shrink: 0;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(165deg, #eff6ff 0%, #dbeafe 55%, #e0f2fe 100%);
+  color: #1e3a5f;
+  text-align: left;
+}
+.brand-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .logo-mark {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: none;
 }
 .logo-mark img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.login-header h1 {
-  font-size: 20px;
-  margin: 16px 0 6px;
-  color: #f1f5f9;
+.brand-name {
+  font-size: 15px;
   font-weight: 700;
+  color: #1d4ed8;
   letter-spacing: 0.5px;
 }
-.login-header p {
+.brand-hero h1 {
+  margin: 0 0 12px;
+  font-size: 27px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: #1e3a8a;
+  letter-spacing: 0.5px;
+}
+.brand-hero > p {
+  margin: 0 0 26px;
+  font-size: 13.5px;
+  color: #5b7aa5;
+  line-height: 1.7;
+}
+.brand-features {
+  list-style: none;
   margin: 0;
-  color: #7d93b2;
-  font-size: 13px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.brand-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.brand-features .el-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.72);
+}
+.brand-features b {
+  display: block;
+  font-size: 14px;
+  color: #1e3a8a;
+  margin-bottom: 2px;
+}
+.brand-features span {
+  font-size: 12.5px;
+  color: #64809f;
+}
+.brand-foot {
+  margin: 0;
+  font-size: 12px;
+  color: #8aa6c4;
+  letter-spacing: 1px;
 }
 
-/* 深色 Tabs 定制 */
+/* ---------- 右侧表单区 ---------- */
+.form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 36px 44px;
+}
+.form-inner {
+  width: 100%;
+  max-width: 340px;
+}
+.form-inner h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+}
+.form-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* Tabs 定制（浅色） */
 .auth-tabs :deep(.el-tabs__nav-wrap::after) {
-  background: rgba(255, 255, 255, 0.08);
   height: 1px;
+  background: #eef2f7;
 }
 .auth-tabs :deep(.el-tabs__item) {
   font-size: 15px;
   font-weight: 600;
-  color: #64748b;
+  color: #94a3b8;
 }
 .auth-tabs :deep(.el-tabs__item.is-active),
 .auth-tabs :deep(.el-tabs__item:hover) {
-  color: #00d4ff;
+  color: #2563eb;
 }
 .auth-tabs :deep(.el-tabs__active-bar) {
-  background: linear-gradient(90deg, #3b82f6, #00d4ff);
-  height: 2px;
-  border-radius: 1px;
+  background: #2563eb;
+  height: 2.5px;
+  border-radius: 2px;
 }
 
-/* 深色输入框定制 */
+/* 输入框定制（浅色、轻边框） */
 .auth-tabs :deep(.el-form-item__label) {
-  color: #8fa5c2;
+  color: #64748b;
   font-size: 13px;
+  padding-bottom: 4px;
 }
 .auth-tabs :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.06);
+  background: #f8fafc;
   border-radius: 10px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  box-shadow: 0 0 0 1px #e5eaf1 inset;
+  padding: 2px 12px;
 }
 .auth-tabs :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.35) inset;
+  box-shadow: 0 0 0 1px #c3d4ee inset;
 }
 .auth-tabs :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #00d4ff inset;
-  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1.5px #2563eb inset;
+  background: #ffffff;
 }
 .auth-tabs :deep(.el-input__inner) {
-  color: #e6edf6;
+  color: #1f2937;
 }
 .auth-tabs :deep(.el-input__inner::placeholder) {
-  color: #55688a;
+  color: #b3c0d1;
 }
 .auth-tabs :deep(.el-input__prefix),
 .auth-tabs :deep(.el-input__suffix) {
-  color: #55688a;
+  color: #9aa9bd;
 }
 .auth-tabs :deep(.el-form-item__error) {
-  color: #ff7a90;
+  color: #ef4444;
+}
+.auth-tabs :deep(.el-form-item) {
+  margin-bottom: 18px;
 }
 
-/* 渐变登录按钮 */
+/* 主按钮：实心蓝 */
 .auth-btn {
   width: 100%;
   height: 44px;
@@ -417,11 +506,11 @@ onBeforeUnmount(() => {
   font-weight: 600;
   letter-spacing: 4px;
   color: #fff;
-  background: linear-gradient(135deg, #3b82f6 0%, #00d4ff 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 .auth-btn:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
 }
 .auth-btn:active:not(:disabled) {
   transform: scale(0.985);
@@ -434,7 +523,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -444,28 +533,37 @@ onBeforeUnmount(() => {
     transform: rotate(360deg);
   }
 }
-
-.login-tip {
-  margin-top: 14px;
-  text-align: center;
-  font-size: 12px;
-  color: #55688a;
-  line-height: 1.6;
-}
 @media (prefers-reduced-motion: reduce) {
   .btn-loading {
     animation-duration: 2s;
   }
 }
 
-/* 窄屏自适应 */
-@media (max-width: 480px) {
-  .login-card {
-    padding: 24px 20px 18px;
-    border-radius: 14px;
+/* ---------- 响应式 ---------- */
+@media (max-width: 880px) {
+  /* 窄屏：隐藏品牌区，表单居中铺满 */
+  .brand-panel {
+    display: none;
   }
-  .login-header h1 {
-    font-size: 18px;
+  .login-shell {
+    width: 100%;
+    max-width: 440px;
+    min-height: auto;
+    border-radius: 20px;
+  }
+  .form-panel {
+    padding: 32px 26px 26px;
+  }
+}
+@media (max-width: 480px) {
+  .login-page {
+    padding: 14px;
+  }
+  .form-inner {
+    max-width: none;
+  }
+  .form-inner h2 {
+    font-size: 20px;
   }
 }
 </style>
