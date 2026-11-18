@@ -17,6 +17,9 @@ backend/bin/
 backend/data/
 backend/logs/
 
+# 临时迁移/调试脚本（可能含真实 API-KEY，严禁入库）
+backend/tmp_mock/
+
 .workbuddy/
 .playwright-cli/
 .screenshots/

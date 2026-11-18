@@ -3,7 +3,7 @@
     <div class="toolbar">
       <el-form :inline="true" :model="query">
         <el-form-item label="关键字">
-          <el-input v-model="query.keyword" placeholder="用户名 / 显示名" clearable style="width: 220px" @keyup.enter="onSearch" />
+          <el-input v-model="query.keyword" placeholder="用户名 / 昵称" clearable style="width: 220px" @keyup.enter="onSearch" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" plain :icon="Search" @click="onSearch">查询</el-button>
@@ -17,7 +17,7 @@
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无用户数据，点击右上角「新增用户」录入">
         <el-table-column prop="id" label="ID" width="60" fixed="left" show-overflow-tooltip />
         <el-table-column prop="username" label="登录账号" min-width="100" fixed="left" show-overflow-tooltip />
-        <el-table-column prop="display_name" label="显示名" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="display_name" label="昵称" min-width="150" show-overflow-tooltip />
         <el-table-column label="角色" width="120" align="left">
           <template #default="{ row }">
             <el-tag :type="row.role === 'admin' ? 'danger' : 'info'">{{ row.role === 'admin' ? '管理员' : '普通用户' }}</el-tag>
@@ -33,7 +33,7 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column label="注册时间" width="180">
           <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="320" fixed="right">
@@ -72,7 +72,7 @@
         <el-form-item label="初始密码" prop="password">
           <el-input v-model="createForm.password" type="password" show-password placeholder="至少 6 位" />
         </el-form-item>
-        <el-form-item label="显示名" prop="display_name">
+        <el-form-item label="昵称" prop="display_name">
           <el-input v-model="createForm.display_name" placeholder="可选" />
         </el-form-item>
         <el-form-item label="角色" prop="role">
@@ -97,7 +97,7 @@
         <el-form-item label="登录账号">
           <el-input :model-value="editForm.username" disabled />
         </el-form-item>
-        <el-form-item label="显示名" prop="display_name">
+        <el-form-item label="昵称" prop="display_name">
           <el-input v-model="editForm.display_name" />
         </el-form-item>
         <el-form-item label="角色" prop="role">
@@ -269,7 +269,7 @@ const editFormRef = ref<FormInstance>()
 const editStatusSwitch = ref(true)
 const editForm = reactive({ id: 0, username: '', display_name: '', role: 'user' as RoleType })
 const editRules: FormRules = {
-  display_name: [{ required: true, message: '请输入显示名', trigger: 'blur' }],
+  display_name: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }]
 }
 

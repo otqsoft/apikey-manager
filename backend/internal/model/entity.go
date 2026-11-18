@@ -99,3 +99,33 @@ type ChatMessage struct {
 	Model        string `orm:"-" json:"model"`            // 取自会话快照 chat_sessions.model
 	ProviderName string `orm:"-" json:"provider_name"`     // 联 api_keys→providers 取供应商名，取不到为空串
 }
+
+// OperationLog 操作日志（operation_logs 表）—— 记录登录用户的写操作
+type OperationLog struct {
+	ID          uint   `orm:"id"           json:"id"`
+	UserID      uint   `orm:"user_id"      json:"user_id"`      // 操作人 ID
+	Username    string `orm:"username"     json:"username"`     // 操作人账号（快照）
+	DisplayName string `orm:"display_name" json:"display_name"` // 操作人昵称（快照）
+	Module      string `orm:"module"       json:"module"`       // 模块：如 供应商管理 / 用户管理
+	Action      string `orm:"action"       json:"action"`       // 动作：如 创建 / 更新 / 删除
+	Method      string `orm:"method"       json:"method"`       // HTTP 方法
+	Path        string `orm:"path"         json:"path"`         // 请求路径
+	Detail      string `orm:"detail"       json:"detail"`       // 请求参数摘要（脱敏 JSON，截断）
+	IP          string `orm:"ip"           json:"ip"`           // 客户端 IP
+	UserAgent   string `orm:"user_agent"   json:"user_agent"`   // 客户端 UA
+	Status      int    `orm:"status"       json:"status"`       // 1 成功 / 0 失败
+	CreatedAt   string `orm:"created_at"   json:"created_at"`
+}
+
+// LoginLog 登录日志（login_logs 表）—— 记录每次登录尝试（成功/失败）
+type LoginLog struct {
+	ID          uint   `orm:"id"           json:"id"`
+	UserID      uint   `orm:"user_id"      json:"user_id"`      // 登录用户 ID；失败且账号不存在时为 0
+	Username    string `orm:"username"     json:"username"`     // 尝试登录的账号
+	DisplayName string `orm:"display_name" json:"display_name"` // 昵称（快照，成功时有值）
+	Status      int    `orm:"status"       json:"status"`       // 1 成功 / 0 失败
+	IP          string `orm:"ip"           json:"ip"`
+	UserAgent   string `orm:"user_agent"   json:"user_agent"`
+	FailReason  string `orm:"fail_reason"  json:"fail_reason"`  // 失败原因（成功为空）
+	CreatedAt   string `orm:"created_at"   json:"created_at"`
+}

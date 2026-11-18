@@ -14,7 +14,7 @@ type IUserService interface {
 	Create(ctx context.Context, req *model.UserSaveReq) (uint, error)
 	// Detail 用户详情（不含哈希）
 	Detail(ctx context.Context, id uint) (*model.User, error)
-	// Update 更新角色/显示名/状态（不改密码、不改账号）
+	// Update 更新角色/昵称/状态（不改密码、不改账号）
 	Update(ctx context.Context, id uint, req *model.UserUpdateReq) error
 	// SetStatus 启停
 	SetStatus(ctx context.Context, id uint, status int) error

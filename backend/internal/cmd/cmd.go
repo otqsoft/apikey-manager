@@ -56,6 +56,8 @@ var Main = gcmd.Command{
 			// 需登录接口组
 			group.Group("/", func(auth *ghttp.RouterGroup) {
 				auth.Middleware(middleware.JwtAuth)
+				// 操作日志：记录所有已登录用户的写操作（登录/注册在公开组，由登录日志单独记录）
+				auth.Middleware(middleware.OperationLog)
 
 				// 认证
 				auth.POST("/auth/logout", controller.Auth.Logout)
@@ -124,6 +126,10 @@ var Main = gcmd.Command{
 					admin.POST("/users/:id/reset-password", controller.User.ResetPassword)
 					admin.DELETE("/users/:id", controller.User.Delete)
 					admin.GET("/users/:id/keys", controller.User.AssignedKeys)
+
+					// 日志管理：仅管理员可读（操作日志 / 登录日志）
+					admin.GET("/logs/operation", controller.Log.OperationList)
+					admin.GET("/logs/login", controller.Log.LoginList)
 				})
 			})
 		})

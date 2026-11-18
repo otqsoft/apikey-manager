@@ -52,7 +52,7 @@ func (userController) Detail(r *ghttp.Request) {
 	response.Success(r, data)
 }
 
-// Update 更新角色/显示名/状态（不改密码、不改账号）
+// Update 更新角色/昵称/状态（不改密码、不改账号）
 func (userController) Update(r *ghttp.Request) {
 	var req model.UserUpdateReq
 	if err := r.Parse(&req); err != nil {

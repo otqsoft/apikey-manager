@@ -7,13 +7,13 @@
           <h3>{{ greeting() }}，{{ store.displayName }}</h3>
           <p>{{ store.isAdmin ? '全局运营概览（管理员口径）' : '我的使用概览（个人口径）' }} · 数据随对话自动聚合</p>
         </div>
-        <el-button type="primary" plain :icon="Refresh" :loading="loading" @click="loadAll">刷新统计</el-button>
+        <el-button circle :icon="Refresh" :loading="loading" @click="loadAll"></el-button>
       </div>
     </el-card>
 
     <!-- 统计卡：admin 七项 / user 五项（GET /api/stats/overview） -->
     <el-row :gutter="16">
-      <el-col v-for="card in statCards" :key="card.key" :xs="24" :sm="12" :md="8" :lg="6" :xl="4" class="card-col">
+      <el-col v-for="card in statCards" :key="card.key" :xs="24" :sm="12" :md="8" :lg="8" :xl="4" class="card-col">
         <el-card shadow="never" class="stat-card">
           <div class="stat-icon" :style="{ background: card.bg }">
             <el-icon :size="24"><component :is="card.icon" /></el-icon>

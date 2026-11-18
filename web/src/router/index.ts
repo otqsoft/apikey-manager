@@ -55,6 +55,18 @@ const routes: RouteRecordRaw[] = [
         name: 'Chat',
         component: () => import('@/views/chat/index.vue'),
         meta: { title: '对话测试', roles: ['admin', 'user'] }
+      },
+      {
+        path: 'logs/operation',
+        name: 'OperationLogs',
+        component: () => import('@/views/logs/operation.vue'),
+        meta: { title: '操作日志', roles: ['admin'] }
+      },
+      {
+        path: 'logs/login',
+        name: 'LoginLogs',
+        component: () => import('@/views/logs/login.vue'),
+        meta: { title: '登录日志', roles: ['admin'] }
       }
     ]
   },

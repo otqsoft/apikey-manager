@@ -239,6 +239,36 @@ var ddlMap = map[string][]string{
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_session ON chat_messages(session_id)`,
+		`CREATE TABLE IF NOT EXISTS operation_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL DEFAULT 0,
+			username TEXT NOT NULL DEFAULT '',
+			display_name TEXT NOT NULL DEFAULT '',
+			module TEXT NOT NULL DEFAULT '',
+			action TEXT NOT NULL DEFAULT '',
+			method TEXT NOT NULL DEFAULT '',
+			path TEXT NOT NULL DEFAULT '',
+			detail TEXT NOT NULL DEFAULT '',
+			ip TEXT NOT NULL DEFAULT '',
+			user_agent TEXT NOT NULL DEFAULT '',
+			status INTEGER NOT NULL DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_oplog_user ON operation_logs(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_oplog_created ON operation_logs(created_at)`,
+		`CREATE TABLE IF NOT EXISTS login_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL DEFAULT 0,
+			username TEXT NOT NULL DEFAULT '',
+			display_name TEXT NOT NULL DEFAULT '',
+			status INTEGER NOT NULL DEFAULT 1,
+			ip TEXT NOT NULL DEFAULT '',
+			user_agent TEXT NOT NULL DEFAULT '',
+			fail_reason TEXT NOT NULL DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_loginlog_user ON login_logs(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_loginlog_created ON login_logs(created_at)`,
 	},
 	"mysql": {
 		`CREATE TABLE IF NOT EXISTS providers (
@@ -331,6 +361,36 @@ var ddlMap = map[string][]string{
 			cost DOUBLE NOT NULL DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			KEY idx_messages_session (session_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+		`CREATE TABLE IF NOT EXISTS operation_logs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			username VARCHAR(64) NOT NULL DEFAULT '',
+			display_name VARCHAR(64) NOT NULL DEFAULT '',
+			module VARCHAR(64) NOT NULL DEFAULT '',
+			action VARCHAR(64) NOT NULL DEFAULT '',
+			method VARCHAR(16) NOT NULL DEFAULT '',
+			path VARCHAR(512) NOT NULL DEFAULT '',
+			detail VARCHAR(4000) NOT NULL DEFAULT '',
+			ip VARCHAR(64) NOT NULL DEFAULT '',
+			user_agent VARCHAR(512) NOT NULL DEFAULT '',
+			status TINYINT NOT NULL DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			KEY idx_oplog_user (user_id),
+			KEY idx_oplog_created (created_at)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+		`CREATE TABLE IF NOT EXISTS login_logs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			username VARCHAR(64) NOT NULL DEFAULT '',
+			display_name VARCHAR(64) NOT NULL DEFAULT '',
+			status TINYINT NOT NULL DEFAULT 1,
+			ip VARCHAR(64) NOT NULL DEFAULT '',
+			user_agent VARCHAR(512) NOT NULL DEFAULT '',
+			fail_reason VARCHAR(512) NOT NULL DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			KEY idx_loginlog_user (user_id),
+			KEY idx_loginlog_created (created_at)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 	},
 }

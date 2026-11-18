@@ -289,3 +289,33 @@ export interface BreakdownItem {
   tokens: number
   cost: number
 }
+
+/** 操作日志 operation_logs（仅 admin） */
+export interface OperationLogItem {
+  id: number
+  user_id: number
+  username: string
+  display_name: string
+  module: string
+  action: string
+  method: string
+  path: string
+  detail: string
+  ip: string
+  user_agent: string
+  status: number // 1 成功 / 0 失败
+  created_at?: string
+}
+
+/** 登录日志 login_logs（仅 admin） */
+export interface LoginLogItem {
+  id: number
+  user_id: number
+  username: string
+  display_name: string
+  status: number // 1 成功 / 0 失败
+  ip: string
+  user_agent: string
+  fail_reason: string
+  created_at?: string
+}

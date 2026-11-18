@@ -7,7 +7,7 @@
         </div>
         <span class="logo-text">API Key 控制台</span>
       </div>
-      <el-menu
+        <el-menu
         :default-active="activeMenu"
         router
         background-color="transparent"
@@ -15,16 +15,32 @@
         active-text-color="#ffffff"
         class="side-menu"
       >
-        <el-menu-item v-for="item in visibleMenus" :key="item.path" :index="item.path">
-          <el-icon><component :is="item.icon" /></el-icon>
-          <template #title>{{ item.title }}</template>
-        </el-menu-item>
+        <template v-for="item in visibleMenus" :key="item.path">
+          <!-- 含子菜单：日志管理 -->
+          <el-sub-menu v-if="item.children?.length" :index="item.path">
+            <template #title>
+              <el-icon><component :is="item.icon" /></el-icon>
+              <span>{{ item.title }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in item.children"
+              :key="child.path"
+              :index="child.path"
+            >
+              <el-icon><component :is="child.icon" /></el-icon>
+              <template #title>{{ child.title }}</template>
+            </el-menu-item>
+          </el-sub-menu>
+          <!-- 普通菜单项 -->
+          <el-menu-item v-else :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>{{ item.title }}</template>
+          </el-menu-item>
+        </template>
       </el-menu>
 
-      <!-- <div class="aside-footer">
-        <span class="env-dot" />
-        后端 :8090 · MySQL
-      </div> -->
+      <!-- 底部出品标识 -->
+      <div class="aside-footer">出品 <span class="brand">q-quick</span></div>
     </el-aside>
 
     <el-container>
@@ -80,20 +96,37 @@ interface MenuItem {
   title: string
   icon: string
   roles: string[]
+  children?: MenuItem[]
 }
 
-/** 菜单：admin 全量 + 全局数据；user 除用户管理外均可（数据范围限自己名下） */
+/** 菜单：admin 全量 + 全局数据；user 除用户管理、日志管理外均可（数据范围限自己名下） */
 const allMenus: MenuItem[] = [
   { path: '/dashboard', title: '仪表盘', icon: 'Odometer', roles: ['admin', 'user'] },
   { path: '/providers', title: '供应商管理', icon: 'Connection', roles: ['admin', 'user'] },
   { path: '/models', title: '模型管理', icon: 'Files', roles: ['admin', 'user'] },
   { path: '/keys', title: 'API-KEY 管理', icon: 'Key', roles: ['admin', 'user'] },
   { path: '/users', title: '用户管理', icon: 'User', roles: ['admin'] },
-  { path: '/chat', title: '对话测试', icon: 'ChatDotRound', roles: ['admin', 'user'] }
+  { path: '/chat', title: '对话测试', icon: 'ChatDotRound', roles: ['admin', 'user'] },
+  {
+    path: '/logs',
+    title: '日志管理',
+    icon: 'Document',
+    roles: ['admin'],
+    children: [
+      { path: '/logs/operation', title: '操作日志', icon: 'EditPen', roles: ['admin'] },
+      { path: '/logs/login', title: '登录日志', icon: 'List', roles: ['admin'] }
+    ]
+  }
 ]
 
 const visibleMenus = computed(() =>
-  allMenus.filter((m) => store.user && m.roles.includes(store.user.role))
+  allMenus
+    .filter((m) => store.user && m.roles.includes(store.user.role))
+    .map((m) =>
+      m.children
+        ? { ...m, children: m.children.filter((c) => store.user && c.roles.includes(store.user.role)) }
+        : m
+    )
 )
 
 const activeMenu = computed(() => route.path)
@@ -159,7 +192,8 @@ async function onCommand(cmd: string) {
   padding: 10px 10px;
   flex: 1;
 }
-.side-menu :deep(.el-menu-item) {
+.side-menu :deep(.el-menu-item),
+.side-menu :deep(.el-sub-menu__title) {
   border-radius: 8px;
   margin-bottom: 3px;
   position: relative;
@@ -167,8 +201,19 @@ async function onCommand(cmd: string) {
   line-height: 42px;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.side-menu :deep(.el-menu-item:hover) {
+.side-menu :deep(.el-menu-item:hover),
+.side-menu :deep(.el-sub-menu__title:hover) {
   background: rgba(255, 255, 255, 0.05);
+}
+/* 子菜单内联展开区域保持暗色，子项缩进对齐 */
+.side-menu :deep(.el-sub-menu .el-menu-item) {
+  height: 38px;
+  line-height: 38px;
+  padding-left: 44px !important;
+}
+/* 弹出层（折叠态）也用暗色，避免默认白底刺眼 */
+.side-menu :deep(.el-menu--popup) {
+  background: #0d1d36 !important;
 }
 .side-menu :deep(.el-menu-item.is-active) {
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.22), rgba(0, 212, 255, 0.1));
@@ -186,18 +231,14 @@ async function onCommand(cmd: string) {
 }
 .aside-footer {
   padding: 12px 18px;
-  font-size: 11px;
+  font-size: 12px;
   color: #4b6079;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   flex-shrink: 0;
 }
-.env-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
+.aside-footer .brand {
+  color: #00d4ff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 /* 轻量顶栏：白底、无阴影 */

@@ -73,7 +73,7 @@
 | username | string 唯一非空 | 登录账号 |
 | password_hash | string | bcrypt 哈希 |
 | role | string 默认 `user` | `admin` / `user` |
-| display_name | string | 显示名 |
+| display_name | string | 昵称 |
 | status | int 默认 1 | 1 启用 / 0 停用 |
 | created_at / updated_at | time | |
 

@@ -16,11 +16,25 @@ const (
 	CodeServer  = 500
 )
 
+// ctxBizCodeKey 请求上下文中的业务码键名，供操作日志中间件判定处理成功/失败。
+const ctxBizCodeKey = "_biz_code"
+
+// SetBizCode 在上下文记录本次请求最终业务码（JSON 写出时调用）
+func SetBizCode(r *ghttp.Request, code int) {
+	r.SetCtxVar(ctxBizCodeKey, code)
+}
+
+// BizCode 读取上下文业务码；未设置（如流式响应）默认按成功处理
+func BizCode(r *ghttp.Request) int {
+	return r.GetCtxVar(ctxBizCodeKey, CodeOK).Int()
+}
+
 // JSON 写出统一响应（HTTP 状态码与业务 code 保持一致，便于前端拦截器识别 401/403）。
 func JSON(r *ghttp.Request, code int, msg string, data interface{}) {
 	if msg == "" {
 		msg = "ok"
 	}
+	SetBizCode(r, code)
 	// 成功用 200；错误码沿用对应 HTTP 状态语义
 	httpStatus := 200
 	if code == CodeNoAuth || code == CodeForbid || code == CodeBadReq || code == CodeServer {
